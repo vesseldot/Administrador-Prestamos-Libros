@@ -4,8 +4,10 @@
 
 | Área | Responsable | Alcance |
 |---|---|---|
-| **Frontend** (interfaz Tkinter) | Responsable de frontend | Experiencia visual: diseño, componentes, vistas, navegación, accesibilidad y mensajes. |
-| **Backend e integración** | Responsable de backend | Lógica de negocio, Redis, ChromaDB, modelo semántico, seguridad, validaciones, configuración e integración. |
+| **Frontend** (interfaz Tkinter) | @miasmee | Experiencia visual: diseño, componentes, vistas, navegación, accesibilidad y mensajes. |
+| **Backend e integración** | @vesseldot | Lógica de negocio, Redis, ChromaDB, modelo semántico, seguridad, validaciones, configuración e integración. |
+
+[`.github/CODEOWNERS`](.github/CODEOWNERS) solicita automáticamente la revisión del responsable de cada área en los Pull Requests.
 
 El frontend puede desarrollarse **de forma independiente** mientras respete el contrato de [INTEGRACION.md](INTEGRACION.md): la interfaz solo usa la API pública de `ServicioBiblioteca` y las pocas funciones puras permitidas. La prueba `tests/test_arquitectura.py` lo comprueba en cada ejecución de las pruebas y en cada Pull Request.
 
@@ -74,7 +76,7 @@ En el PR, adjunta capturas tomadas con el modo de demostración y marca la casil
 | `feature/<tema>` | Nuevas funcionalidades. Ej.: `feature/reporte-vencidos`. | Se abre PR hacia `develop`. |
 | `fix/<tema>` | Correcciones. Ej.: `fix/isbn-guiones`. | PR hacia `develop` (o hacia `main` si es urgente). |
 
-Recomendación para el responsable: en GitHub, *Settings › Branches*, proteger `main` y `develop` para exigir un Pull Request con al menos una aprobación y las pruebas en verde.
+En GitHub, `main` y `develop` están protegidas: los cambios entran solo por Pull Request con al menos una aprobación, no se permite reescribir el historial (*force push*) ni borrar la rama, y las conversaciones deben quedar resueltas. Las pruebas automáticas (`.github/workflows/pruebas.yml`) se ejecutan en cada Pull Request.
 
 ## Flujo de trabajo
 
