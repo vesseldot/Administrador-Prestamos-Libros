@@ -12,7 +12,8 @@ DEPENDENCIAS = [("tkinter", "viene con Python (reinstala marcando 'tcl/tk')"),
                 ("torch", "pip install -r requirements.txt"),
                 ("cryptography", "pip install -r requirements.txt"),
                 ("dotenv", "pip install -r requirements.txt"),
-                ("numpy", "pip install -r requirements.txt")]
+                ("numpy", "pip install -r requirements.txt"),
+                ("PIL", "pip install -r requirements.txt")]
 
 
 def linea(correcto: bool, texto: str, ayuda: str = ""):

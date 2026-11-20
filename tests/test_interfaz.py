@@ -184,3 +184,36 @@ def test_bloqueo_de_sesion(app):
     assert pantallas and app._bloqueado
     app.navegar("personas")
     assert app._actual != "personas"
+
+
+def test_portada_en_la_ficha_y_en_la_busqueda(app, servicio, tmp_path):
+    from PIL import Image
+    libro_id = servicio.alta_libro(libro_ejemplo(1))
+    archivo = tmp_path / "portada.png"
+    Image.new("RGB", (300, 450), (10, 120, 200)).save(archivo)
+    servicio.asignar_portada(libro_id, archivo)
+
+    app.navegar("libros", seleccionar=libro_id)
+    esperar(app)
+    vista = app._vistas["libros"]
+    assert vista.portada.con_imagen
+    assert vista.lbl_origen.cget("text").startswith("Portada:")
+    assert vista.btn_quitar_portada._habilitado
+
+    app.navegar("busqueda", consulta="astronauta solo en Marte")
+    esperar(app)
+    assert app._vistas["busqueda"].portada.con_imagen
+
+    app.navegar("libros", seleccionar=libro_id)
+    esperar(app)
+    vista.quitar_portada()
+    esperar(app)
+    assert not vista.portada.con_imagen and not vista.btn_quitar_portada._habilitado
+
+    app.navegar("configuracion")
+    configuracion = app._vistas["configuracion"]
+    configuracion.pestanas.select(3)
+    app.update()
+    esperar(app)
+    assert configuracion.lbl_portadas.cget("text").startswith("0 de 1 libros con portada")
+    assert app.errores == []

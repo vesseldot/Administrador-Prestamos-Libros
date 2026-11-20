@@ -33,6 +33,8 @@ appendonlydir/
 *.aof
 redis_datos/
 redis-data/
+# Portadas descargadas o elegidas en cada instalación (derechos de sus editoriales)
+portadas/
 # Exportaciones ARCO con datos personales
 datos_P*.json
 exportaciones/

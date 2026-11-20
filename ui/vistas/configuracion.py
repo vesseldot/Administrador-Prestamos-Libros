@@ -3,7 +3,7 @@ from tkinter import ttk
 
 import config
 from ui.acceso import CambioContrasena
-from ui.componentes import Boton, Tabla, caja_texto, confirmar, encabezado_tarjeta, escribir, tarjeta
+from ui.componentes import Boton, Dialogo, Tabla, caja_texto, confirmar, encabezado_tarjeta, escribir, tarjeta
 from ui.tema import COLOR
 from ui.vistas.base import Vista, badge
 from ui.vistas.libros import mostrar_reporte_lote
@@ -139,8 +139,12 @@ class VistaConfiguracion(Vista):
         encabezado_tarjeta(caja, "Conexiones y almacenamiento")
         self.rejilla_sistema = tk.Frame(caja, bg=COLOR["tarjeta"])
         self.rejilla_sistema.pack(fill="x")
-        datos = tarjeta(marco)
-        datos.pack(fill="x", pady=(12, 0))
+        inferior = ttk.Frame(marco)
+        inferior.pack(fill="x", pady=(12, 0))
+        inferior.columnconfigure(0, weight=1, uniform="sistema")
+        inferior.columnconfigure(1, weight=1, uniform="sistema")
+        datos = tarjeta(inferior)
+        datos.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
         encabezado_tarjeta(datos, "Datos de ejemplo",
                            "Importa todos los archivos datos/libros_*.csv. Los libros que ya existan se reportan "
                            "como rechazados, así que puede ejecutarse más de una vez.")
@@ -148,6 +152,26 @@ class VistaConfiguracion(Vista):
         self.lbl_archivos.pack(anchor="w", pady=(0, 10))
         Boton(datos, "Cargar datos de ejemplo", icono="importar", variante="primario",
               comando=self.cargar_ejemplos).pack(anchor="w")
+
+        portadas = tarjeta(inferior)
+        portadas.grid(row=0, column=1, sticky="nsew")
+        encabezado_tarjeta(portadas, "Portadas de los libros",
+                           "Se buscan en Open Library por ISBN y por título. Las que no se encuentren pueden "
+                           "elegirse a mano desde la ficha del libro.")
+        self.lbl_portadas = ttk.Label(portadas, text="", style="Suave.TLabel", justify="left", wraplength=460)
+        self.lbl_portadas.pack(anchor="w", pady=(0, 8))
+        self.barra_portadas = ttk.Progressbar(portadas, mode="determinate", maximum=1)
+        self.lbl_progreso_portadas = ttk.Label(portadas, text="", style="Suave.TLabel")
+        botones = tk.Frame(portadas, bg=COLOR["tarjeta"])
+        botones.pack(fill="x", side="bottom")
+        self.btn_portadas = Boton(botones, "Descargar portadas faltantes", icono="imagen", variante="primario",
+                                  comando=self.descargar_portadas)
+        self.btn_portadas.pack(side="left")
+        self.btn_detener_portadas = Boton(botones, "Detener", icono="cerrar",
+                                          comando=self.servicio.detener_descarga_portadas)
+        self.btn_detener_portadas.pack(side="left", padx=8)
+        self.btn_detener_portadas.habilitar(False)
+        self._descargando_portadas = False
 
     def refrescar(self):
         indice = self.pestanas.index("current")
@@ -316,6 +340,57 @@ class VistaConfiguracion(Vista):
         self.tarea(self.servicio.info_sistema, listo, "Consultando el sistema…")
         archivos = self.servicio.archivos_ejemplo()
         self.lbl_archivos.configure(text="\n".join(f"•  {a.name}" for a in archivos) or "No hay archivos de ejemplo.")
+        self._refrescar_portadas()
+
+    def _refrescar_portadas(self):
+        estado = self.servicio.estado_portadas()
+        busqueda = "permitida" if estado["descarga_permitida"] else "desactivada (BIBLIOTECA_DESCARGAR_PORTADAS=0)"
+        self.lbl_portadas.configure(text=f"{estado['con_portada']} de {estado['total']} libros con portada\n"
+                                         f"Carpeta: {estado['carpeta']}\nBúsqueda en internet: {busqueda}")
+        faltan = estado["con_portada"] < estado["total"]
+        self.btn_portadas.habilitar(estado["descarga_permitida"] and faltan and not self._descargando_portadas)
+
+    def descargar_portadas(self):
+        self._descargando_portadas = True
+        self.btn_portadas.habilitar(False)
+        self.btn_detener_portadas.habilitar(True)
+        self.barra_portadas.configure(value=0, maximum=1)
+        self.barra_portadas.pack(fill="x", pady=(0, 4))
+        self.lbl_progreso_portadas.configure(text="Preparando…")
+        self.lbl_progreso_portadas.pack(anchor="w", pady=(0, 10))
+
+        def progreso(hechos, total, titulo):
+            self.barra_portadas.configure(maximum=max(total, 1), value=hechos)
+            self.lbl_progreso_portadas.configure(text=f"{hechos} de {total} · {titulo}")
+
+        def terminar():
+            self._descargando_portadas = False
+            self.btn_detener_portadas.habilitar(False)
+            self.barra_portadas.pack_forget()
+            self.lbl_progreso_portadas.pack_forget()
+            self._refrescar_portadas()
+
+        def listo(resultado):
+            terminar()
+            revisados = len(resultado.descargadas) + len(resultado.sin_portada)
+            mensaje = (f"Libros revisados: {revisados} de {resultado.total}\n"
+                       f"Portadas descargadas: {len(resultado.descargadas)}\n"
+                       f"Sin portada en Open Library: {len(resultado.sin_portada)}")
+            if resultado.cancelado:
+                mensaje += "\nLa descarga se detuvo a petición del operador."
+            detalle = ""
+            if resultado.sin_portada:
+                detalle = ("Puedes elegir una imagen para estos libros desde su ficha:\n"
+                           + "\n".join(f"{l['id']} · {l['titulo']}" for l in resultado.sin_portada))
+            tipo = "exito" if resultado.descargadas and not resultado.sin_portada else "info"
+            self.wait_window(Dialogo(self, "Portadas de los libros", mensaje, tipo, detalle=detalle))
+
+        def fallo(error):
+            terminar()
+            self.app.manejar_error(error)
+        self.app.tareas.ejecutar(
+            lambda: self.servicio.descargar_portadas(self.app.tareas.progreso(progreso)), listo, fallo,
+            "Descargando portadas desde Open Library…", independiente=True)
 
     def cargar_ejemplos(self):
         if not self.servicio.archivos_ejemplo():

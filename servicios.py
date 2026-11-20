@@ -8,11 +8,13 @@ falla, el libro queda en `sync:pendientes` para repararse desde Configuración.
 `ServicioBiblioteca` es el ÚNICO punto de entrada que usa la interfaz gráfica.
 Los métodos de la sección «API para la interfaz» son el contrato con el frontend
 (ver INTEGRACION.md); los atributos internos (`r`, `catalogo`, `indice`,
-`personas`, `prestamos`, `actividad`, `llaves`) no deben usarse desde `ui/`.
+`personas`, `prestamos`, `actividad`, `llaves`, `portadas`, `cliente_portadas`) no deben
+usarse desde `ui/`.
 """
 import csv
 import json
 import logging
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -25,6 +27,8 @@ from db_personas import GestorPersonas
 from db_prestamos import GestorPrestamos
 from db_redis import Llaves, RegistroActividad, conectar_redis, preparar_base
 from modelos import MODELOS, ModeloEmbeddings, ModeloNoDisponible
+from portadas import ORIGEN_OPEN_LIBRARY, ORIGEN_OPERADOR, AlmacenPortadas, ClienteOpenLibrary, ErrorPortada
+from portadas import TAMANO_MAXIMO_BYTES as TAMANO_MAXIMO_PORTADA
 from seguridad import Cifrador, ControlAcceso, ErrorCifrado, ErrorLlave, cargar_llave_legada
 from validaciones import CAMPOS_METADATOS_LIBRO, normalizar_isbn, normalizar_texto, validar_libro
 
@@ -36,6 +40,18 @@ class ResultadoLote:
     total: int = 0
     agregados: list[str] = field(default_factory=list)
     rechazados: list[dict] = field(default_factory=list)
+
+
+@dataclass
+class ResultadoPortadas:
+    """Resultado de `descargar_portadas`: listas de {"id", "titulo"}."""
+    total: int = 0
+    descargadas: list[dict] = field(default_factory=list)
+    sin_portada: list[dict] = field(default_factory=list)
+    cancelado: bool = False
+
+
+MAX_FALLOS_DE_RED_SEGUIDOS = 3
 
 
 @dataclass
@@ -81,7 +97,8 @@ def _iguales(a, b) -> bool:
 class ServicioBiblioteca:
     def __init__(self, r: redis.Redis, llaves: Llaves, catalogo: CatalogoRedis,
                  indice: GestorLibros, personas: GestorPersonas, prestamos: GestorPrestamos,
-                 actividad: RegistroActividad, acceso: ControlAcceso | None = None):
+                 actividad: RegistroActividad, acceso: ControlAcceso | None = None,
+                 portadas: AlmacenPortadas | None = None, cliente_portadas: ClienteOpenLibrary | None = None):
         self.r = r
         self.llaves = llaves
         self.catalogo = catalogo
@@ -90,11 +107,15 @@ class ServicioBiblioteca:
         self.prestamos = prestamos
         self.actividad = actividad
         self.acceso = acceso or ControlAcceso()
+        self.portadas = portadas or AlmacenPortadas()
+        self.cliente_portadas = cliente_portadas or ClienteOpenLibrary()
+        self._detener_portadas = threading.Event()
 
     @classmethod
     def crear(cls, r: redis.Redis | None = None, indice: GestorLibros | None = None,
               cifrador: Cifrador | None = None, llaves: Llaves | None = None,
-              acceso: ControlAcceso | None = None):
+              acceso: ControlAcceso | None = None, portadas: AlmacenPortadas | None = None,
+              cliente_portadas: ClienteOpenLibrary | None = None):
         r = r or conectar_redis()
         llaves = llaves or Llaves()
         preparar_base(r, llaves)
@@ -102,7 +123,7 @@ class ServicioBiblioteca:
         cifrador = cifrador or Cifrador(llave_legada=cargar_llave_legada())
         return cls(r, llaves, CatalogoRedis(r, llaves), indice or GestorLibros(),
                    GestorPersonas(r, cifrador, llaves, actividad),
-                   GestorPrestamos(r, llaves, actividad), actividad, acceso)
+                   GestorPrestamos(r, llaves, actividad), actividad, acceso, portadas, cliente_portadas)
 
     def _marcar_pendiente(self, libro_id: str):
         try:
@@ -236,6 +257,10 @@ class ServicioBiblioteca:
                 self._marcar_pendiente(libro_id)
             raise
         self.r.srem(self.llaves.sync_pendientes, libro_id)
+        try:
+            self.portadas.quitar(libro_id)
+        except OSError:
+            log.warning("No se pudo borrar la portada del libro eliminado %s", libro_id)
         self.actividad.registrar("libro_eliminado", f"Eliminación de «{libro['titulo']}»",
                                  libro=libro_id)
 
@@ -265,6 +290,7 @@ class ServicioBiblioteca:
         prestamo = self.prestamos.activo_de_libro(libro_id)
         libro["prestamo"] = prestamo
         libro["estado"] = "Prestado" if prestamo else ("Disponible" if libro["disponible"] else "No disponible")
+        libro["portada"] = self.portadas.info(libro_id)
         return libro
 
     def buscar_libros(self, texto: str, cantidad: int, solo_disponibles: bool = False) -> list[dict]:
@@ -547,6 +573,100 @@ class ServicioBiblioteca:
     def contar_libros(self) -> int:
         return self.catalogo.contar()
 
+    def _libro_existente(self, libro_id: str) -> dict:
+        libro = self.catalogo.obtener(libro_id)
+        if not libro:
+            raise ValueError(f"No existe el libro '{libro_id}'.")
+        return libro
+
+    def portada_libro(self, libro_id: str, ancho: int = 180, alto: int = 270) -> bytes | None:
+        """PNG de la portada ajustado a ancho×alto píxeles, o None si el libro no tiene portada."""
+        return self.portadas.miniatura_png(libro_id, ancho, alto)
+
+    def asignar_portada(self, libro_id: str, ruta: str | Path) -> dict:
+        """Usa una imagen del equipo como portada. Lanza ValueError si el archivo no es válido."""
+        self._libro_existente(libro_id)
+        ruta = Path(ruta)
+        try:
+            if ruta.stat().st_size > TAMANO_MAXIMO_PORTADA:
+                raise ValueError("La imagen supera el tamaño máximo de 15 MB.")
+            datos = ruta.read_bytes()
+        except OSError as error:
+            raise ValueError("No se pudo leer el archivo de imagen.") from error
+        info = self.portadas.guardar(libro_id, datos, ORIGEN_OPERADOR)
+        self.actividad.registrar("portada", f"Portada asignada al libro {libro_id}", libro=libro_id)
+        return info
+
+    def quitar_portada(self, libro_id: str) -> bool:
+        return self.portadas.quitar(libro_id)
+
+    def _buscar_y_guardar_portada(self, libro: dict) -> bool:
+        encontrada = self.cliente_portadas.buscar(libro["isbn"], libro["titulo"], libro["autor"])
+        if not encontrada:
+            return False
+        imagen, url = encontrada
+        try:
+            self.portadas.guardar(libro["id"], imagen, ORIGEN_OPEN_LIBRARY, url)
+        except ValueError:
+            log.warning("Open Library devolvió una imagen no válida para %s", libro["id"])
+            return False
+        return True
+
+    def buscar_portada(self, libro_id: str, reemplazar: bool = False) -> dict:
+        """Busca la portada de un libro en Open Library. Lanza ValueError o ErrorPortada."""
+        if not config.DESCARGAR_PORTADAS:
+            raise ValueError("La búsqueda de portadas en internet está desactivada "
+                             "(BIBLIOTECA_DESCARGAR_PORTADAS=0). Puedes elegir una imagen del equipo.")
+        libro = self._libro_existente(libro_id)
+        if not reemplazar and self.portadas.existe(libro_id):
+            return {"encontrada": True, "nueva": False, "portada": self.portadas.info(libro_id)}
+        encontrada = self._buscar_y_guardar_portada(libro)
+        return {"encontrada": encontrada, "nueva": encontrada,
+                "portada": self.portadas.info(libro_id) if encontrada else None}
+
+    def estado_portadas(self) -> dict:
+        ids = set(self.catalogo.ids())
+        return {"total": len(ids), "con_portada": len(ids & self.portadas.ids()),
+                "descarga_permitida": config.DESCARGAR_PORTADAS,
+                "carpeta": "temporal (se borra al cerrar)" if self.en_memoria else str(self.portadas.directorio)}
+
+    def descargar_portadas(self, progreso=None) -> ResultadoPortadas:
+        """Busca en Open Library las portadas que faltan. `progreso(hechos, total, titulo)`.
+
+        Se detiene con `detener_descarga_portadas()`. Lanza ErrorPortada si se pierde la conexión.
+        """
+        if not config.DESCARGAR_PORTADAS:
+            raise ValueError("La búsqueda de portadas en internet está desactivada "
+                             "(BIBLIOTECA_DESCARGAR_PORTADAS=0).")
+        self._detener_portadas.clear()
+        con_portada = self.portadas.ids()
+        pendientes = [libro for libro in self.catalogo.listar() if libro["id"] not in con_portada]
+        resultado = ResultadoPortadas(total=len(pendientes))
+        fallos_seguidos = 0
+        for hechos, libro in enumerate(pendientes, start=1):
+            if self._detener_portadas.is_set():
+                resultado.cancelado = True
+                break
+            try:
+                encontrada = self._buscar_y_guardar_portada(libro)
+                fallos_seguidos = 0
+            except ErrorPortada:
+                fallos_seguidos += 1
+                if fallos_seguidos >= MAX_FALLOS_DE_RED_SEGUIDOS:
+                    raise
+                encontrada = False
+            destino = resultado.descargadas if encontrada else resultado.sin_portada
+            destino.append({"id": libro["id"], "titulo": libro["titulo"]})
+            if progreso:
+                progreso(hechos, len(pendientes), libro["titulo"])
+        if resultado.descargadas:
+            self.actividad.registrar("portadas", f"Portadas descargadas: {len(resultado.descargadas)}",
+                                     cantidad=len(resultado.descargadas))
+        return resultado
+
+    def detener_descarga_portadas(self):
+        self._detener_portadas.set()
+
     def registrar_persona(self, datos: dict) -> str:
         return self.personas.registrar(datos)
 
@@ -612,7 +732,7 @@ def describir_error(error: Exception) -> dict:
     """Traduce una excepción del backend a {titulo, mensaje, tipo} para mostrarla al usuario.
 
     `tipo` es "aviso" (el usuario puede corregirlo) o "error"; `categoria` es validacion, modelo,
-    redis, integridad o inesperado. El mensaje nunca incluye datos personales.
+    redis, integridad, red o inesperado. El mensaje nunca incluye datos personales.
     """
     import gestor_modelos
     if isinstance(error, ValueError):
@@ -634,6 +754,8 @@ def describir_error(error: Exception) -> dict:
         return {"titulo": "Error de integridad",
                 "mensaje": "Un dato cifrado no pudo verificarse. Puede haber sido alterado o la llave no es la "
                            "correcta.", "tipo": "error", "categoria": "integridad"}
+    if isinstance(error, ErrorPortada):
+        return {"titulo": "Portadas", "mensaje": str(error), "tipo": "error", "categoria": "red"}
     if isinstance(error, ErrorLlave):
         return {"titulo": "Llave de cifrado inválida", "mensaje": str(error), "tipo": "error",
                 "categoria": "integridad"}

@@ -43,6 +43,7 @@ def crear_servicio_demo(modelo_real: bool = False, con_datos: bool = True, progr
     from db_redis import Llaves
     from modelo_simulado import fabrica_simulada
     from modelos import MODELO_POR_DEFECTO, ModeloEmbeddings
+    from portadas import AlmacenPortadas
     from seguridad import Cifrador, ControlAcceso, hash_contrasena
     from servicios import ServicioBiblioteca
 
@@ -64,7 +65,8 @@ def crear_servicio_demo(modelo_real: bool = False, con_datos: bool = True, progr
     acceso = ControlAcceso(leer_hash=lambda: almacen["hash"], guardar_hash=guardar)
     servicio = ServicioBiblioteca.crear(r=fakeredis.FakeRedis(decode_responses=True), indice=indice,
                                         cifrador=Cifrador(llave_maestra=os.urandom(32)),
-                                        llaves=Llaves("demo:"), acceso=acceso)
+                                        llaves=Llaves("demo:"), acceso=acceso,
+                                        portadas=AlmacenPortadas(temporal / "portadas"))
     servicio.en_memoria = True
     if con_datos:
         cargar_datos_demo(servicio, progreso)

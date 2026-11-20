@@ -1,4 +1,5 @@
 """Componentes visuales reutilizables."""
+import base64
 import tkinter as tk
 from tkinter import ttk
 
@@ -159,6 +160,38 @@ class Boton(tk.Frame):
 
     def texto(self, valor: str):
         self._etiqueta.configure(text=valor)
+
+
+class Portada(tk.Frame):
+    """Marco de tamaño fijo con la portada de un libro (PNG que entrega el servicio) o un aviso si no hay."""
+
+    def __init__(self, padre, ancho: int = 110, alto: int = 165):
+        self.ancho, self.alto = tema.px(ancho), tema.px(alto)
+        super().__init__(padre, width=self.ancho, height=self.alto, bg=COLOR["fila_alterna"],
+                         highlightthickness=1, highlightbackground=COLOR["borde"])
+        self.pack_propagate(False)
+        self._foto = None
+        self.etiqueta = tk.Label(self, bg=COLOR["fila_alterna"], fg=COLOR["tenue"], font=tema.f(8),
+                                 justify="center", wraplength=self.ancho - tema.px(10))
+        self.etiqueta.pack(fill="both", expand=True)
+        self.mostrar(None)
+
+    @property
+    def tamano(self) -> tuple[int, int]:
+        """Espacio disponible para la imagen, en píxeles, descontando el borde."""
+        return self.ancho - 2, self.alto - 2
+
+    @property
+    def con_imagen(self) -> bool:
+        return self._foto is not None
+
+    def mostrar(self, png: bytes | None, mensaje: str = "Sin portada"):
+        if png:
+            self._foto = tk.PhotoImage(master=self, data=base64.b64encode(png).decode("ascii"))
+            self.etiqueta.configure(image=self._foto, text="")
+        else:
+            self._foto = None
+            self.etiqueta.configure(image="", text=mensaje)
 
 
 class Ayuda:

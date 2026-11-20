@@ -3,8 +3,8 @@ from tkinter import filedialog, ttk
 
 import config
 from ui import tema
-from ui.componentes import (Boton, Dialogo, Formulario, Tabla, caja_texto, confirmar, encabezado_tarjeta,
-                            escribir, informar, tarjeta)
+from ui.componentes import (Boton, Dialogo, Formulario, Portada, Tabla, caja_texto, confirmar,
+                            encabezado_tarjeta, escribir, informar, tarjeta)
 from ui.tema import COLOR
 from ui.vistas.base import Vista, contenido_ficha, etiqueta_estado, ficha_libro
 from validaciones import TIPOS_PASTA
@@ -31,6 +31,7 @@ COLUMNAS = [("id", "ID", 70, "w", False), ("titulo", "Título", 230), ("autor", 
             ("calificacion", "Calif.", 55, "center", False), ("estado", "Estado", 135, "w", False)]
 
 TODOS = "Todos"
+TIPOS_IMAGEN = [("Imágenes", "*.jpg *.jpeg *.png *.webp *.gif *.bmp"), ("Todos los archivos", "*.*")]
 
 
 def mostrar_reporte_lote(padre, resultado):
@@ -100,6 +101,28 @@ class VistaLibros(Vista):
         self.btn_similares.pack(side="left", padx=8)
         self.btn_eliminar = Boton(botones, "Eliminar", icono="eliminar", variante="peligro", comando=self.eliminar)
         self.btn_eliminar.pack(side="right")
+
+        cabecera = tk.Frame(detalle, bg=COLOR["tarjeta"])
+        cabecera.pack(fill="x", pady=(0, 10))
+        self.portada = Portada(cabecera)
+        self.portada.pack(side="left")
+        acciones = tk.Frame(cabecera, bg=COLOR["tarjeta"])
+        acciones.pack(side="left", fill="y", padx=(12, 0))
+        self.btn_elegir_portada = Boton(acciones, "Elegir imagen…", icono="imagen", variante="enlace", tamano=9,
+                                        padx=6, pady=3, comando=self.elegir_portada,
+                                        ayuda="Usa una imagen JPG, PNG, WEBP, GIF o BMP de tu equipo.")
+        self.btn_elegir_portada.pack(anchor="w")
+        self.btn_buscar_portada = Boton(acciones, "Buscar en internet", icono="buscar", variante="enlace",
+                                        tamano=9, padx=6, pady=3, comando=self.buscar_portada,
+                                        ayuda="Busca la portada en Open Library por ISBN y por título.")
+        self.btn_buscar_portada.pack(anchor="w", pady=(2, 0))
+        self.btn_quitar_portada = Boton(acciones, "Quitar portada", icono="eliminar", variante="enlace",
+                                        tamano=9, padx=6, pady=3, comando=self.quitar_portada)
+        self.btn_quitar_portada.pack(anchor="w", pady=(2, 0))
+        self.lbl_origen = tk.Label(acciones, text="", font=tema.f(8), fg=COLOR["suave"], bg=COLOR["tarjeta"],
+                                   justify="left", anchor="w", wraplength=tema.px(170))
+        self.lbl_origen.pack(anchor="w", pady=(8, 0))
+
         self.ficha = caja_texto(detalle, 18, solo_lectura=True)
         self.ficha.configure(bg=COLOR["tarjeta"], highlightthickness=0, padx=2)
         ficha_libro(self.ficha)
@@ -149,24 +172,44 @@ class VistaLibros(Vista):
             combo.set(TODOS)
         self._filtrar()
 
-    def _habilitar_acciones(self, valor: bool):
-        for boton in (self.btn_editar, self.btn_similares, self.btn_eliminar):
+    def _habilitar_acciones(self, valor: bool, con_portada: bool = False):
+        for boton in (self.btn_editar, self.btn_similares, self.btn_eliminar, self.btn_elegir_portada):
             boton.habilitar(valor)
+        self.btn_buscar_portada.habilitar(valor and self._descarga_portadas)
+        self.btn_quitar_portada.habilitar(valor and con_portada)
+
+    @property
+    def _descarga_portadas(self) -> bool:
+        return bool(config.DESCARGAR_PORTADAS)
+
+    def _mostrar_portada(self, libro: dict | None, png: bytes | None):
+        self.portada.mostrar(png)
+        info = (libro or {}).get("portada")
+        self.lbl_origen.configure(text=f"Portada: {info['origen']}" if info else "")
 
     def _cargar_detalle(self):
         fila = self.tabla.fila_seleccionada()
         self._detalle_id = fila["id"] if fila else None
         self._habilitar_acciones(bool(fila))
         if not fila:
+            self._mostrar_portada(None, None)
             escribir(self.ficha, contenido_ficha(None, "Selecciona un libro de la tabla para ver su ficha completa."))
             return
         libro_id = fila["id"]
+        ancho, alto = self.portada.tamano
 
-        def mostrar(libro):
+        def trabajo():
+            libro = self.servicio.obtener_libro(libro_id)
+            return libro, (self.servicio.portada_libro(libro_id, ancho, alto) if libro else None)
+
+        def mostrar(datos):
+            libro, png = datos
             if self._detalle_id == libro_id:
                 self._libro_detalle = libro
+                self._mostrar_portada(libro, png)
+                self._habilitar_acciones(bool(libro), con_portada=bool(libro and libro.get("portada")))
                 escribir(self.ficha, contenido_ficha(libro, "El libro ya no existe."))
-        self.tarea(lambda: self.servicio.obtener_libro(libro_id), mostrar, "Cargando ficha…")
+        self.tarea(trabajo, mostrar, "Cargando ficha…")
 
     def _formulario(self, titulo, valores, al_guardar, bloqueados=()):
         Formulario(self, titulo, CAMPOS_FORMULARIO, al_guardar, valores=valores, bloqueados=bloqueados,
@@ -181,6 +224,7 @@ class VistaLibros(Vista):
                 formulario.destroy()
                 self.exito(f"Libro «{datos['titulo']}» registrado.")
                 self.refrescar(seleccionar=libro_id)
+                self._portada_automatica(libro_id)
 
             def fallo(error):
                 if not formulario.winfo_exists():
@@ -246,6 +290,68 @@ class VistaLibros(Vista):
         libro = getattr(self, "_libro_detalle", None)
         if libro and libro.get("sinopsis"):
             self.app.navegar("busqueda", consulta=libro["sinopsis"], excluir=libro["id"])
+
+    def _portada_automatica(self, libro_id: str):
+        """Tras un alta, busca la portada en segundo plano sin interrumpir al operador."""
+        if not self._descarga_portadas:
+            return
+
+        def listo(resultado):
+            if resultado.get("nueva") and self._detalle_id == libro_id:
+                self._cargar_detalle()
+
+        self.app.tareas.ejecutar(lambda: self.servicio.buscar_portada(libro_id), listo,
+                                 lambda error: self.app.mensaje_estado("No se pudo buscar la portada en internet."),
+                                 "Buscando la portada en Open Library…", independiente=True)
+
+    def elegir_portada(self):
+        libro_id = self._detalle_id
+        if not libro_id:
+            return
+        ruta = filedialog.askopenfilename(parent=self, title="Selecciona la imagen de la portada",
+                                          filetypes=TIPOS_IMAGEN)
+        if not ruta:
+            return
+
+        def listo(_):
+            self.exito("Portada actualizada.")
+            self._cargar_detalle()
+        self.tarea(lambda: self.servicio.asignar_portada(libro_id, ruta), listo, "Guardando la portada…")
+
+    def buscar_portada(self):
+        libro = getattr(self, "_libro_detalle", None)
+        if not libro or libro["id"] != self._detalle_id:
+            return
+        if libro.get("portada") and not confirmar(self, "Reemplazar portada",
+                                                  "El libro ya tiene portada. ¿Buscar otra en Open Library y "
+                                                  "reemplazarla si se encuentra?", "Buscar"):
+            return
+        self.btn_buscar_portada.habilitar(False)
+
+        def listo(resultado):
+            if resultado["encontrada"]:
+                self.exito(f"Portada encontrada para «{libro['titulo']}».")
+            else:
+                informar(self, "Sin resultados", f"Open Library no tiene una portada para «{libro['titulo']}». "
+                         "Puedes elegir una imagen de tu equipo.", "info")
+            self._cargar_detalle()
+
+        def fallo(error):
+            self._cargar_detalle()
+            self.app.manejar_error(error)
+        self.app.tareas.ejecutar(lambda: self.servicio.buscar_portada(libro["id"], reemplazar=True), listo, fallo,
+                                 "Buscando la portada en Open Library…", independiente=True)
+
+    def quitar_portada(self):
+        libro_id = self._detalle_id
+        if not libro_id or not confirmar(self, "Quitar portada", "¿Quitar la portada de este libro? Podrás "
+                                         "elegir otra o buscarla de nuevo.", "Quitar", peligro=True):
+            return
+
+        def listo(_):
+            self.exito("Portada quitada.")
+            self._cargar_detalle()
+        self.tarea(lambda: self.servicio.quitar_portada(libro_id), listo, "Quitando la portada…")
 
     def importar(self):
         ruta = filedialog.askopenfilename(parent=self, title="Selecciona el archivo de libros",

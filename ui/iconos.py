@@ -9,7 +9,7 @@ GLIFOS = {
     "ocultar": "", "aceptar": "", "cerrar": "", "info": "",
     "aviso": "", "error": "", "devolver": "", "prestar": "",
     "escudo": "", "calendario": "", "filtro": "", "sincronizar": "",
-    "reloj": "", "documento": "", "guardar": "", "contacto": "",
+    "reloj": "", "documento": "", "guardar": "", "contacto": "", "imagen": "",
 }
 RESPALDO = {
     "dashboard": "▦", "libros": "▤", "buscar": "⌕", "personas": "☺", "prestamos": "⇄",
@@ -17,7 +17,7 @@ RESPALDO = {
     "importar": "⇪", "exportar": "⇩", "refrescar": "↻", "candado": "🔒", "ver": "◉",
     "ocultar": "◌", "aceptar": "✓", "cerrar": "✕", "info": "ⓘ", "aviso": "⚠", "error": "⊗",
     "devolver": "↶", "prestar": "✓", "escudo": "⛨", "calendario": "▣", "filtro": "⏷",
-    "sincronizar": "⟳", "reloj": "◷", "documento": "▭", "guardar": "▣", "contacto": "☏",
+    "sincronizar": "⟳", "reloj": "◷", "documento": "▭", "guardar": "▣", "contacto": "☏", "imagen": "▨",
 }
 
 _familia = None

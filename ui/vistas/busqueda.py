@@ -4,7 +4,7 @@ from tkinter import ttk
 
 import config
 from ui import tema
-from ui.componentes import Boton, Tabla, caja_texto, encabezado_tarjeta, escribir, tarjeta
+from ui.componentes import Boton, Portada, Tabla, caja_texto, encabezado_tarjeta, escribir, tarjeta
 from ui.tema import COLOR
 from ui.vistas.base import Vista, contenido_ficha, etiqueta_estado, ficha_libro
 
@@ -70,6 +70,8 @@ class VistaBusqueda(Vista):
         self.btn_catalogo.pack(side="left")
         self.btn_prestar = Boton(botones, "Prestar", icono="prestar", variante="primario", comando=self._prestar)
         self.btn_prestar.pack(side="right")
+        self.portada = Portada(detalle, 96, 144)
+        self.portada.pack(anchor="w", pady=(0, 10))
         self.ficha = caja_texto(detalle, 18, solo_lectura=True)
         self.ficha.configure(bg=COLOR["tarjeta"], highlightthickness=0, padx=2)
         ficha_libro(self.ficha)
@@ -139,6 +141,17 @@ class VistaBusqueda(Vista):
         self.btn_catalogo.habilitar(bool(libro))
         self.btn_prestar.habilitar(bool(libro) and libro.get("estado") == "Disponible")
         escribir(self.ficha, contenido_ficha(libro, "Selecciona un resultado para ver la ficha completa."))
+        self.portada.mostrar(None)
+        if not libro:
+            return
+        libro_id = libro["id"]
+        ancho, alto = self.portada.tamano
+
+        def mostrar(png):
+            seleccionado = self.tabla.fila_seleccionada()
+            if seleccionado and seleccionado["id"] == libro_id:
+                self.portada.mostrar(png)
+        self.tarea(lambda: self.servicio.portada_libro(libro_id, ancho, alto), mostrar, "Cargando portada…")
 
     def _ver_catalogo(self):
         libro = self.tabla.fila_seleccionada()

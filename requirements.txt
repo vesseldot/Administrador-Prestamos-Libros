@@ -1,5 +1,6 @@
 # Versiones probadas: Python 3.14.6, chromadb 1.5.9, redis 8.1.0, sentence-transformers 6.1.0,
-# transformers 5.20.2, torch 2.14.1+cu130, cryptography 50.0.2, numpy 2.5.3, python-dotenv 1.2.4.
+# transformers 5.20.2, torch 2.14.1+cu130, cryptography 50.0.2, numpy 2.5.3, python-dotenv 1.2.4,
+# pillow 12.3.0.
 # Instala torch primero con el índice de tu versión de CUDA (ver README.md).
 
 chromadb>=1.5,<2
@@ -11,6 +12,7 @@ huggingface_hub>=0.30
 cryptography>=42.0
 python-dotenv>=1.0
 numpy>=1.26
+pillow>=11.0
 
 # Pruebas automatizadas
 pytest>=8.0

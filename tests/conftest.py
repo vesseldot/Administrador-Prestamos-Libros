@@ -15,6 +15,16 @@ from seguridad import Cifrador  # noqa: E402
 from servicios import ServicioBiblioteca  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def portadas_aisladas(tmp_path, monkeypatch):
+    """Ninguna prueba escribe en la carpeta real de portadas ni consulta Open Library."""
+    import config
+    import portadas
+    monkeypatch.setattr(config, "DIR_PORTADAS", tmp_path / "portadas")
+    monkeypatch.setattr(portadas.ClienteOpenLibrary, "_abrir_url", lambda self, url: None)
+    monkeypatch.setattr(portadas.ClienteOpenLibrary.__init__, "__defaults__", (0, 20, None))
+
+
 @pytest.fixture
 def redis_falso():
     return fakeredis.FakeRedis(decode_responses=True)

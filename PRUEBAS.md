@@ -7,13 +7,13 @@ Todos los resultados de este documento provienen de ejecuciones reales. Lo que n
 ## 1. Cómo ejecutarlas
 
 ```powershell
-python -m pytest tests                                        # 123 pruebas (fakeredis + Chroma temporal + modelo simulado)
-$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 124 pruebas: añade la integración con servicios reales
+python -m pytest tests                                        # 150 pruebas (fakeredis + Chroma temporal + modelo simulado)
+$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 151 pruebas: añade la integración con servicios reales
 python verificar.py                                           # diagnóstico del entorno
 python evaluar_busqueda.py                                    # calidad de la búsqueda semántica
 ```
 
-Las pruebas unitarias usan **fakeredis** y una ChromaDB en una carpeta temporal: no tocan la base de la aplicación. La prueba de integración real usa la base configurada con un prefijo propio (`prueba_integracion:`) y al terminar borra solo esas llaves. Se verificó que la base de la aplicación y las demás bases de la instancia de Redis conservaron exactamente el mismo número de llaves.
+Las pruebas unitarias usan **fakeredis** y una ChromaDB en una carpeta temporal: no tocan la base de la aplicación. Un fixture automático (`portadas_aisladas`) envía las portadas a una carpeta temporal y bloquea cualquier petición a Open Library. La prueba de integración real usa la base configurada con un prefijo propio (`prueba_integracion:`) y al terminar borra solo esas llaves. Se verificó que la base de la aplicación y las demás bases de la instancia de Redis conservaron exactamente el mismo número de llaves.
 
 ## 2. Resultado global
 
@@ -24,14 +24,15 @@ Las pruebas unitarias usan **fakeredis** y una ChromaDB en una carpeta temporal:
 | `test_personas.py` | 10 | ✅ | Datos cifrados en Redis (sin texto en claro y sin edad almacenada); rechazo sin aviso; correo duplicado; rectificación que conserva la fecha de consentimiento y reindexa el correo; búsqueda por nombre y campos no sensibles (no por teléfono); cancelación bloqueada con préstamos; dato alterado; exportación ARCO; rechazo de una base con llaves ajenas. |
 | `test_libros.py` | 17 | ✅ | Alta en Redis y Chroma con metadatos iguales; duplicados de id e ISBN; alta incompleta sin escrituras; reporte de lote (aceptados y rechazados con motivo); CSV con `;`; actualización sincronizada con re-embedding solo si cambia la sinopsis; cambio de ISBN; eliminación en ambas bases; búsqueda semántica; filtros; **compensación ante fallos simulados** en alta (Redis y Chroma), actualización y eliminación; revisión y reparación de la sincronización; importación de huérfanos; cambio de modelo exitoso y fallido. |
 | `test_prestamos.py` | 13 | ✅ | Préstamo de 3 libros en una operación; operaciones separadas hasta el límite; más de 3 rechazado; un libro sin dos préstamos activos; todo o nada; libro marcado no disponible; persona o libro inexistente; devolución de 1, 2 y todos con historial conservado; préstamo ajeno o ya devuelto; libro prestado no eliminable ni marcable como disponible; personas con préstamos y estadísticas; vencimiento derivado; búsqueda «solo disponibles». |
-| `test_interfaz.py` | 3 | ✅ | Interfaz Tkinter real: navegación por las 7 secciones y las 4 pestañas de Configuración sin errores. Flujo completo desde la interfaz: alta por formulario, errores en línea, filtro del catálogo, búsqueda semántica, préstamo de 2 libros, contacto visible y vuelto a ocultar, devolución de 1 y de todos, eliminación e indicadores del Dashboard. Bloqueo de sesión. |
+| `test_interfaz.py` | 4 | ✅ | Interfaz Tkinter real: navegación por las 7 secciones y las 4 pestañas de Configuración sin errores. Flujo completo desde la interfaz: alta por formulario, errores en línea, filtro del catálogo, búsqueda semántica, préstamo de 2 libros, contacto visible y vuelto a ocultar, devolución de 1 y de todos, eliminación e indicadores del Dashboard. Bloqueo de sesión. Portada en la ficha del catálogo y en la búsqueda, quitar portada y contador de Configuración. |
+| `test_portadas.py` | 26 | ✅ | Normalización a JPEG de 600×900 como máximo; transparencia; rechazo de archivos que no son imagen, diminutos o de más de 15 MB; guardar, consultar, quitar y miniaturas que se renuevan al reemplazar la imagen; identificadores que no son de libro (por ejemplo `../fuera`). Open Library simulado: búsqueda por ISBN con título coincidente, descarte de la edición de otro libro y búsqueda por título, sin resultados, error de red y reintento tras un fallo puntual. Servicio: asignar desde un archivo, validaciones, borrado de la portada al eliminar el libro, búsqueda individual, búsqueda desactivada, descarga solo de las que faltan con progreso, detención a petición e interrupción clara sin red. |
 | `test_gestor_modelos.py` | 9 | ✅ | Revisiones fijadas y metadatos de los 5 modelos; filtro de archivos (sin ONNX, OpenVINO ni `.bin`); modelo ausente; descarga con progreso creciente hasta el total; reutilización sin volver a descargar; reanudación de solo los archivos faltantes; sin conexión; espacio insuficiente; revisión incompleta; mensaje claro al cargar un modelo ausente. Usa un Hub simulado, sin red. |
 | `test_config.py` | 4 | ✅ | Valores por defecto válidos; mensajes claros para cada variable inválida; rutas relativas de ChromaDB; **persistencia de ChromaDB comprobada desde otro proceso**. |
-| `test_arquitectura.py` | 35 | ✅ | Por cada archivo de `ui/`: no importa Redis, ChromaDB, el modelo ni los módulos `db_*`; no usa atributos internos del servicio; solo llama a métodos que existen en la API pública. El backend no importa `ui` ni `tkinter`. Se comprobó además que detecta un acceso interno, un método inexistente y dos importaciones prohibidas en un fragmento de ejemplo. |
+| `test_arquitectura.py` | 35 | ✅ | Por cada archivo de `ui/`: no importa Redis, ChromaDB, el modelo, los módulos `db_*`, `portadas` ni Pillow; no usa atributos internos del servicio; solo llama a métodos que existen en la API pública. El backend no importa `ui` ni `tkinter`. Se comprobó además que detecta un acceso interno, un método inexistente y dos importaciones prohibidas en un fragmento de ejemplo. |
 | `test_api_interfaz.py` | 10 | ✅ | Claves y valores de la API para la interfaz (sistema, modelo, tokens, personas, préstamos, actividad, seguridad, datos de ejemplo); `describir_error` por categoría; `ControlAcceso` (espera tras fallos, cambio de contraseña). |
 | `test_demo.py` | 2 | ✅ | El modo de demostración usa fakeredis y el prefijo `demo:`, carga 200 libros, 4 personas y un préstamo vencido, acepta la contraseña `demo1234` y no escribe el `modelo_activo.txt` real. |
 | `test_integracion_real.py` | 1 | ✅ | Ver sección 3. |
-| **Total** | **124** | **124 aprobadas** | 32 s con la integración real; unos 15 s sin ella. |
+| **Total** | **151** | **151 aprobadas** | 35 s con la integración real; unos 19 s sin ella. |
 
 ### Errores encontrados y corregidos durante las pruebas
 
@@ -121,6 +122,15 @@ Se lanzó la interfaz real con el modelo Qwen en la GPU, los 200 libros y 4 pers
 - El catálogo, la búsqueda, los préstamos, la vista agrupada de personas con préstamos y Configuración se ven completos, sin recortes, a la escala del 133 %.
 - Los botones deshabilitados se distinguen visualmente, se muestran mensajes cuando una tabla está vacía y el formulario muestra los errores en línea.
 
+### Portadas de los libros
+
+Prueba real contra Open Library con 10 libros elegidos al azar del catálogo (5 del catálogo original y 5 del ampliado). Las imágenes se guardaron en una carpeta temporal; Redis solo se leyó.
+
+- Se encontraron **8 de 10** portadas en 42 s (unos 4 s por libro, por la pausa de 1 s entre peticiones). No se encontraron *Breve historia del tiempo* ni *Neuromante*.
+- Se revisaron visualmente las 8 imágenes: todas corresponden al libro correcto, incluidas las del catálogo ampliado, cuyos ISBN son ilustrativos y se resolvieron por título y autor.
+- El primer intento falló por un tiempo de espera agotado al conectar con openlibrary.org. La aplicación mostró el error previsto (`ErrorPortada`) y, a raíz de ello, cada petición se reintenta una vez.
+- Con la interfaz real (modo de demostración) se capturaron la ficha del catálogo con portada y sin ella, la búsqueda y Configuración › Sistema: se ven completas, sin recortes.
+
 ## 6. Diagnóstico del entorno (`verificar.py`)
 
 ```
@@ -158,6 +168,7 @@ Las pruebas de Compose usaron proyectos y puertos aislados (6391 y 6392), que se
 - **Fallos intermitentes del entorno Windows** observados durante la verificación final:
   1. Tk no pudo leer su `init.tcl` («couldn't read file … No error»), un problema transitorio de acceso al archivo. La prueba de interfaz ahora reintenta crear la ventana.
   2. Una vez, ChromaDB informó «Error in compaction» en la base temporal de una prueba de interfaz. Además, al cerrar cada prueba ahora se espera al hilo trabajador. No se reprodujo en las 3 corridas completas posteriores (76/76 en cada una). Causa no confirmada; las hipótesis son el acceso concurrente a archivos (antivirus, disco al 95 %) o un hilo de la prueba anterior todavía activo. Si ocurriera en la aplicación, la operación se compensa y se informa al usuario.
+- **Descarga de las 200 portadas**: no se ejecutó completa contra Open Library; se probó con una muestra de 10 libros. A unos 4 s por libro, la descarga completa tardaría del orden de 10 a 15 minutos.
 - **TLS**: no se probó Redis con TLS (`rediss://`). La contraseña sí se probó con Docker Compose.
 - **GitHub Actions**: el flujo `.github/workflows/pruebas.yml` no se ha ejecutado; correrá en GitHub después de publicar.
 - **Instalación desde cero en otro equipo**: no se creó un entorno virtual nuevo e independiente. Las dependencias se verificaron analizando las importaciones frente a `requirements.txt`.

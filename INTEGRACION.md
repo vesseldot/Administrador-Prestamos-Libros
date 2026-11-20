@@ -25,7 +25,7 @@ Todas las funciones listadas existen en el código. La prueba `tests/test_arquit
 
 ## 2. Reglas de la integración
 
-1. **La interfaz solo habla con `ServicioBiblioteca`.** Dentro de una vista se accede como `self.servicio` (o `self.app.servicio`). Nunca se usan sus atributos internos `r`, `catalogo`, `indice`, `personas`, `prestamos`, `actividad` ni `llaves`.
+1. **La interfaz solo habla con `ServicioBiblioteca`.** Dentro de una vista se accede como `self.servicio` (o `self.app.servicio`). Nunca se usan sus atributos internos `r`, `catalogo`, `indice`, `personas`, `prestamos`, `actividad`, `llaves`, `portadas` ni `cliente_portadas`.
 2. **Importaciones permitidas en `ui/`** (todas son funciones puras o constantes, sin acceso a bases de datos):
 
    | Módulo | Nombres permitidos |
@@ -35,7 +35,7 @@ Todas las funciones listadas existen en el código. La prueba `tests/test_arquit
    | `seguridad` | `AVISO_PRIVACIDAD`, `enmascarar_correo`, `enmascarar_telefono` |
    | `config` | Solo lectura de constantes (`MAX_RESULTADOS_BUSQUEDA`, `MINUTOS_BLOQUEO_INACTIVIDAD`, `DIR_DATOS`…) |
 
-   Prohibido: `redis`, `chromadb`, `db_*`, `modelos`, `gestor_modelos`, `torch`, `sentence_transformers`, `huggingface_hub`, `cryptography`.
+   Prohibido: `redis`, `chromadb`, `db_*`, `modelos`, `gestor_modelos`, `portadas`, `PIL` (Pillow), `torch`, `sentence_transformers`, `huggingface_hub`, `cryptography`. Las portadas llegan ya convertidas a PNG y se muestran con `tk.PhotoImage` (componente `ui.componentes.Portada`).
 3. **Nada pesado en el hilo de Tkinter.** Todo lo que toca ChromaDB o el modelo se ejecuta con `self.tarea(...)` (ver la sección 4). Las operaciones que solo usan Redis son rápidas y pueden llamarse directamente. La columna «Hilo» de la sección 3 indica cuál es cuál.
 4. **Los errores llegan como excepciones** y se muestran con `describir_error` (sección 5). La interfaz no traduce excepciones por su cuenta.
 5. **Datos personales.** Los métodos de personas devuelven los datos **descifrados**. La interfaz es responsable de **enmascarar** el correo y el teléfono en listados (`enmascarar_correo`, `enmascarar_telefono`), de no escribirlos en el registro y de mostrarlos completos solo en la ficha ARCO o a petición.
@@ -51,11 +51,11 @@ Hilo: **UI** = puede llamarse directamente (solo Redis o cálculo ligero). **Tar
 |---|---|---|---|
 | `catalogo_libros()` | `list[dict]` de libros (3.6) con `estado` y `prestado_a` | Redis | UI |
 | `filtrar_catalogo(libros, texto="", genero="", idioma="", estado="")` | `list[dict]` filtrada (sin acentos ni mayúsculas) | — | UI |
-| `obtener_libro(libro_id)` | `dict` con `sinopsis`, `indexado`, `prestamo` (o `None`) y `estado`; `None` si no existe | Redis, Chroma | Tarea |
+| `obtener_libro(libro_id)` | `dict` con `sinopsis`, `indexado`, `prestamo` (o `None`), `estado` y `portada` (dict o `None`); `None` si no existe | Redis, Chroma | Tarea |
 | `validar_alta(datos)` | `dict` limpio | `ValueError` (campos, id o ISBN duplicado) | UI |
 | `alta_libro(datos)` | `str` id | `ValueError`, `ModeloNoDisponible` | Tarea |
 | `actualizar_libro(libro_id, datos)` | `None` | `ValueError` (no existe, campos, ISBN de otro libro) | Tarea |
-| `eliminar_libro(libro_id)` | `None` | `ValueError` (no existe, está prestado) | Tarea |
+| `eliminar_libro(libro_id)` | `None` (también borra su portada) | `ValueError` (no existe, está prestado) | Tarea |
 | `importar_archivo(ruta, progreso=None)` | `ResultadoLote` | `ValueError` (JSON mal formado), `OSError` (no se puede leer) | Tarea |
 | `importar_lote(registros, progreso=None)` | `ResultadoLote` | — (las filas inválidas van a `rechazados`) | Tarea |
 | `importar_datos_ejemplo(progreso=None)` | `ResultadoLote` | — | Tarea |
@@ -64,6 +64,22 @@ Hilo: **UI** = puede llamarse directamente (solo Redis o cálculo ligero). **Tar
 | `buscar_libros(texto, cantidad, solo_disponibles=False)` | `list[dict]` ordenada por `similitud` (0–1); `[]` si `texto` está vacío | `ModeloNoDisponible` | Tarea |
 
 `progreso` es un callable `progreso(hechos, total)` que se invoca **desde el hilo trabajador**: envuélvelo con `self.app.tareas.progreso(funcion)` para que se ejecute en la interfaz.
+
+#### Portadas
+
+Las portadas son archivos en `BIBLIOTECA_DIR_PORTADAS` (no están en Redis ni en ChromaDB). Se obtienen de Open Library o de una imagen del equipo.
+
+| Método | Devuelve | Excepciones | Hilo |
+|---|---|---|---|
+| `portada_libro(libro_id, ancho=180, alto=270)` | `bytes` PNG ajustado a ancho×alto píxeles, o `None` si no hay portada | — | Tarea |
+| `asignar_portada(libro_id, ruta)` | `dict` `{origen, fuente, fecha}` | `ValueError` (libro inexistente, archivo ilegible, no es imagen, más de 15 MB, menos de 40 px) | Tarea |
+| `quitar_portada(libro_id)` | `bool` (si había portada) | — | Tarea |
+| `buscar_portada(libro_id, reemplazar=False)` | `dict` `{encontrada, nueva, portada}` | `ValueError` (libro inexistente, búsqueda desactivada), `ErrorPortada` (sin red) | **Tarea independiente** |
+| `descargar_portadas(progreso=None)` | `ResultadoPortadas` (3.6); solo busca las que faltan | `ValueError` (desactivada), `ErrorPortada` (tras 3 fallos de red seguidos) | **Tarea independiente** |
+| `detener_descarga_portadas()` | `None`: la descarga termina tras el libro en curso | — | UI |
+| `estado_portadas()` | `dict` `{total, con_portada, descarga_permitida, carpeta}` | Redis | UI |
+
+`progreso` de `descargar_portadas` recibe `(hechos, total, titulo)`. Las búsquedas en Open Library hacen una pausa de 1 s entre peticiones, así que conviene ejecutarlas con `self.app.tareas.ejecutar(..., independiente=True)` para no bloquear la cola del modelo.
 
 ### 3.2 Personas
 
@@ -129,12 +145,13 @@ Hilo: **UI** = puede llamarse directamente (solo Redis o cálculo ligero). **Tar
 | Estructura | Claves |
 |---|---|
 | **Libro** (`catalogo_libros`) | `id`, `isbn`, `titulo`, `autor`, `anio` (int), `editorial`, `genero`, `tema`, `idioma`, `pasta`, `paginas` (int), `calificacion` (float), `disponible` (bool), `fecha_alta`, `fecha_actualizacion`, `estado` (`"Disponible"`, `"Prestado"` o `"No disponible"`), `prestado_a` |
-| **Libro con detalle** (`obtener_libro`) | Lo anterior más `sinopsis`, `indexado` (bool) y `prestamo` (dict o `None`), sin `prestado_a` |
+| **Libro con detalle** (`obtener_libro`) | Lo anterior más `sinopsis`, `indexado` (bool), `prestamo` (dict o `None`) y `portada` (`{origen, fuente, fecha}` o `None`), sin `prestado_a` |
 | **Resultado de búsqueda** (`buscar_libros`) | Libro más `sinopsis` y `similitud` (float 0–1) |
 | **Persona** | `id`, `nombre`, `apellido_paterno`, `apellido_materno`, `nombre_completo`, `fecha_nacimiento`, `edad` (derivada), `genero`, `correo`, `telefono`, `calle_numero`, `colonia`, `ciudad`, `estado`, `codigo_postal`, `ocupacion`, `tipo_usuario`, `acepta_aviso_privacidad`, `fecha_aviso`, `fecha_registro`, `fecha_actualizacion`, `num_prestamos`, `integridad_ok` (False si un dato no superó la verificación), `cifrado_heredado` |
 | **Préstamo** | `id` (`PR000001`), `persona_id`, `libro_id`, `titulo`, `autor`, `fecha_prestamo`, `fecha_limite`, `fecha_devolucion`, `estado` (`"activo"` o `"devuelto"`), `estado_visible` (`"Activo"`, `"Vencido"` o `"Devuelto"`), `vencido` (bool) |
 | **Estadísticas** | `libros`, `disponibles`, `prestados`, `no_disponibles`, `personas`, `prestamos_activos`, `prestamos_vencidos`, `prestamos_historicos`, `personas_con_prestamo`, `sync_pendientes`, `documentos_indice` |
 | **`ResultadoLote`** | `total`, `agregados` (list[str]), `rechazados` (list[dict] `{fila, id, motivos}`) |
+| **`ResultadoPortadas`** | `total`, `descargadas` y `sin_portada` (list[dict] `{id, titulo}`), `cancelado` (bool) |
 | **`InformeSincronizacion`** | `faltan_en_chroma`, `huerfanos_en_chroma`, `metadatos_distintos`, `pendientes` (listas de ids), `consistente` (bool) |
 
 Las fechas son texto ISO: `"2026-11-19T21:33:05"` en los campos de fecha y hora, y `"2026-12-03"` en `fecha_limite`.
@@ -263,6 +280,7 @@ self.tarea(lambda: self.servicio.prestar(persona_id, libro_ids), listo, "Registr
   | `modelo` | `ModeloNoDisponible`, `ErrorDescarga`, `SinConexion`, `EspacioInsuficiente` | `error` |
   | `redis` | Conexión, tiempo de espera o autenticación de Redis | `error` |
   | `integridad` | `ErrorCifrado`, `ErrorLlave` | `error` |
+  | `red` | `ErrorPortada` (sin conexión con Open Library) | `error` |
   | `inesperado` | Cualquier otra; el detalle técnico queda en `biblioteca.log` | `error` |
 
   `AplicacionBiblioteca.manejar_error` ya usa esta función: puedes cambiar **cómo** se presenta el diálogo, pero no dupliques la clasificación. Los mensajes nunca contienen datos personales.
@@ -272,7 +290,7 @@ self.tarea(lambda: self.servicio.prestar(persona_id, libro_ids), listo, "Registr
 
 | Herramienta | Qué hace |
 |---|---|
-| `python demo_interfaz.py` | Abre la aplicación completa con **fakeredis** y **ChromaDB en memoria**, una llave temporal, la contraseña `demo1234`, los 200 libros de ejemplo y 4 personas ficticias con préstamos (uno vencido). Usa un modelo simulado: no necesita GPU ni descargas. No lee ni escribe `.env`, `secrets/`, `chroma_db/` ni ningún Redis real. Todo se borra al cerrar. |
+| `python demo_interfaz.py` | Abre la aplicación completa con **fakeredis** y **ChromaDB en memoria**, una llave temporal, la contraseña `demo1234`, los 200 libros de ejemplo y 4 personas ficticias con préstamos (uno vencido). Usa un modelo simulado: no necesita GPU ni descargar el modelo. Las portadas que se elijan o descarguen van a una carpeta temporal. No lee ni escribe `.env`, `secrets/`, `chroma_db/`, `portadas/` ni ningún Redis real. Todo se borra al cerrar. |
 | `python demo_interfaz.py --sin-datos` | Igual, con las bases vacías, para revisar los mensajes de tabla vacía y el primer uso. |
 | `python demo_interfaz.py --modelo-real` | Usa el modelo descargado para revisar la búsqueda real (los datos siguen en memoria). |
 | `python -m pytest tests/test_interfaz.py` | Recorre las 7 secciones y un flujo completo con fakeredis. |

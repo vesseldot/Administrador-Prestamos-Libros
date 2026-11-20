@@ -96,6 +96,8 @@ MAX_INTENTOS_ACCESO = 5
 SEGUNDOS_ESPERA_TRAS_FALLOS = 30
 
 DIR_DATOS = BASE_DIR / "datos"
+DIR_PORTADAS = _ruta("BIBLIOTECA_DIR_PORTADAS", BASE_DIR / "portadas")
+DESCARGAR_PORTADAS = _booleano("BIBLIOTECA_DESCARGAR_PORTADAS", True)
 
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
@@ -121,7 +123,8 @@ def validar() -> list[str]:
     if MODELO_POR_DEFECTO not in MODELOS:
         errores.append(f"BIBLIOTECA_MODELO='{MODELO_POR_DEFECTO}' no existe. Opciones: {', '.join(MODELOS)}.")
     for nombre, ruta in (("BIBLIOTECA_CHROMA_PATH", Path(CHROMA_PATH)), ("BIBLIOTECA_DIR_SECRETOS", DIR_SECRETOS),
-                         ("BIBLIOTECA_DIR_MODELOS", DIR_MODELOS)):
+                         ("BIBLIOTECA_DIR_MODELOS", DIR_MODELOS),
+                         ("BIBLIOTECA_DIR_PORTADAS", DIR_PORTADAS)):
         if ruta is not None and not _escribible(ruta):
             errores.append(f"{nombre}: no hay permiso de escritura en {ruta}.")
     clave = os.environ.get("BIBLIOTECA_AES_KEY")

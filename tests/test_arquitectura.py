@@ -16,14 +16,16 @@ ARCHIVOS_UI = sorted((RAIZ / "ui").rglob("*.py"))
 
 MODULOS_PROHIBIDOS = {"redis", "chromadb", "fakeredis", "sentence_transformers", "torch", "transformers",
                       "huggingface_hub", "cryptography", "db_redis", "db_catalogo", "db_personas",
-                      "db_prestamos", "db_libros", "modelos", "gestor_modelos", "modelo_simulado"}
+                      "db_prestamos", "db_libros", "modelos", "gestor_modelos", "modelo_simulado",
+                      "portadas", "PIL"}
 NOMBRES_PERMITIDOS = {
     "servicios": {"describir_error"},
     "seguridad": {"AVISO_PRIVACIDAD", "enmascarar_correo", "enmascarar_telefono"},
     "validaciones": {"ESTADOS_MEXICO", "GENEROS_PERSONA", "OCUPACIONES", "TIPOS_USUARIO", "TIPOS_PASTA",
                      "normalizar_texto", "clave_natural"},
 }
-ATRIBUTOS_INTERNOS = {"r", "llaves", "catalogo", "indice", "personas", "prestamos", "actividad"}
+ATRIBUTOS_INTERNOS = {"r", "llaves", "catalogo", "indice", "personas", "prestamos", "actividad", "portadas",
+                      "cliente_portadas"}
 API_PUBLICA = {n for n in dir(ServicioBiblioteca) if not n.startswith("_")} | {"acceso"}
 
 
