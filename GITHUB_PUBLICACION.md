@@ -15,7 +15,7 @@ Se creó un repositorio Git **local** (`git init -b main`), sin commits y sin re
 | Pruebas | `tests/` (12 archivos, 124 pruebas) |
 | Entorno | `requirements.txt`, `docker-compose.yml`, `.env.example`, `.gitignore`, `.gitattributes` |
 | Colaboración | `CONTRIBUTING.md`, `INTEGRACION.md`, `.github/pull_request_template.md`, `.github/ISSUE_TEMPLATE/` (error y funcionalidad), `.github/CODEOWNERS` (plantilla comentada), `.github/workflows/pruebas.yml` |
-| Documentación | `README.md`, `ARQUITECTURA.md`, `SEGURIDAD.md`, `PRUEBAS.md`, `ANALISIS_PROYECTO.md`, `GITHUB_PUBLICACION.md` |
+| Documentación | `README.md`, `INTEGRACION.md`, `PRUEBAS.md`, `CONTRIBUTING.md`, `ANALISIS_PROYECTO.md`, `GITHUB_PUBLICACION.md` y la carpeta `docs/` (guías, arquitectura, seguridad y sus PDF) |
 
 El archivo más grande es `datos/libros_catalogo_ampliado.csv` (48 KB). Lista exacta: `git add --dry-run .`
 

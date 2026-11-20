@@ -24,7 +24,7 @@
 - [ ] Si toca archivos de backend o `ui/tareas.py`, se coordinó con el responsable de backend
 - [ ] No incluye `.env`, `secrets/`, llaves, `chroma_db/`, modelos, registros ni datos personales reales
 - [ ] No hay valores de configuración nuevos fuera de `config.py` / `.env.example`
-- [ ] La documentación está actualizada (README, ARQUITECTURA, SEGURIDAD) si aplica
+- [ ] La documentación está actualizada (README, `docs/`, INTEGRACION) si aplica
 - [ ] Si cambia el modelo de embeddings o el esquema de Redis, está documentada la migración
 
 ## Capturas (opcional)

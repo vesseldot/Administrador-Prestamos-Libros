@@ -2,7 +2,7 @@
 
 **Fase 1: auditoría y análisis.** Este documento describe el proyecto tal como se recibió, antes de cualquier refactorización.
 
-> **Nota posterior.** El plan de la sección 11 se ejecutó con los ajustes que resume la sección 13. Las rutas de archivo y los números de línea citados corresponden a la versión **original**. Para la versión actual, consulta [ARQUITECTURA.md](ARQUITECTURA.md), [SEGURIDAD.md](SEGURIDAD.md) y [PRUEBAS.md](PRUEBAS.md).
+> **Nota posterior.** El plan de la sección 11 se ejecutó con los ajustes que resume la sección 13. Las rutas de archivo y los números de línea citados corresponden a la versión **original**. Para la versión actual, consulta [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md), [docs/SEGURIDAD.md](docs/SEGURIDAD.md) y [PRUEBAS.md](PRUEBAS.md).
 
 - Fecha del análisis: 2026-11-19
 - Alcance: todos los archivos de `biblioteca/`, el entorno Python que usa (`../.venv`), la caché local de modelos y el servidor Redis local. Todas las comprobaciones fueron de solo lectura.

@@ -21,7 +21,7 @@ assignees: ""
 - [ ] Cambia la interfaz
 - [ ] Cambia el esquema de Redis (requiere migración)
 - [ ] Cambia el modelo de embeddings o la colección de Chroma (requiere reindexar)
-- [ ] Afecta a datos personales (revisar SEGURIDAD.md)
+- [ ] Afecta a datos personales (revisar docs/SEGURIDAD.md)
 
 ## Criterios de aceptación
 

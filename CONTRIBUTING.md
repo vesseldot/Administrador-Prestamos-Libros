@@ -31,6 +31,7 @@ El frontend puede desarrollarse **de forma independiente** mientras respete el c
 | `db_redis.py`, `db_catalogo.py`, `db_personas.py`, `db_prestamos.py`, `db_libros.py` | Estructuras de Redis y ChromaDB. Un cambio exige migración. |
 | `modelos.py`, `gestor_modelos.py`, `modelo_simulado.py` | Modelo semántico y su revisión fijada. |
 | `seguridad.py`, `validaciones.py` | Cifrado, control de acceso y reglas de datos (LFPDPPP). |
+| `portadas.py` | Almacenamiento de portadas y cliente de Open Library (pausas y reintentos). |
 | `config.py`, `.env.example`, `requirements.txt`, `docker-compose.yml`, `main.py` | Configuración y arranque compartidos. |
 | `datos/`, `tests/` salvo `test_interfaz.py`, `tests/test_arquitectura.py` | Datos de prueba y protección de la arquitectura. |
 
@@ -76,7 +77,7 @@ En el PR, adjunta capturas tomadas con el modo de demostración y marca la casil
 | `feature/<tema>` | Nuevas funcionalidades. Ej.: `feature/reporte-vencidos`. | Se abre PR hacia `develop`. |
 | `fix/<tema>` | Correcciones. Ej.: `fix/isbn-guiones`. | PR hacia `develop` (o hacia `main` si es urgente). |
 
-En GitHub, `main` y `develop` están protegidas: los cambios entran solo por Pull Request con al menos una aprobación, no se permite reescribir el historial (*force push*) ni borrar la rama, y las conversaciones deben quedar resueltas. Las pruebas automáticas (`.github/workflows/pruebas.yml`) se ejecutan en cada Pull Request.
+En GitHub, `main` y `develop` admiten `git push` directo de cualquier colaborador con permiso de escritura; no se permite reescribir el historial (*force push*) ni borrar la rama. El Pull Request no es obligatorio, pero se recomienda para cambios grandes o que toquen el área de otra persona, porque CODEOWNERS asigna la revisión automáticamente. Antes de subir, ejecuta `python -m pytest tests`. Las pruebas automáticas (`.github/workflows/pruebas.yml`) se ejecutan en cada `push` y Pull Request.
 
 ## Flujo de trabajo
 
@@ -88,7 +89,7 @@ cd <repositorio>
 git switch develop
 ```
 
-Después sigue la [instalación rápida](README.md#instalación-rápida-para-colaboradores).
+Después sigue la [instalación rápida](README.md#instalación-rápida) o la guía completa de [docs/INSTALACION.md](docs/INSTALACION.md).
 
 ### 2. Crear una rama
 
@@ -102,7 +103,7 @@ git switch -c feature/nombre-corto
 
 - Ejecuta las pruebas antes de confirmar: `python -m pytest tests`.
 - Si cambias el comportamiento, agrega o actualiza las pruebas en `tests/`.
-- Mantén la documentación al día (README, ARQUITECTURA, SEGURIDAD) cuando corresponda.
+- Mantén la documentación al día (README, `docs/`, INTEGRACION) cuando corresponda.
 - **Nunca** incluyas `.env`, `secrets/`, `chroma_db/`, modelos, registros ni datos personales reales. Revisa siempre `git status` antes de confirmar.
 
 ### 4. Crear commits descriptivos
