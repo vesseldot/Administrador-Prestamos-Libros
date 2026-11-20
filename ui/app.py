@@ -9,6 +9,7 @@ from servicios import describir_error
 from ui import iconos, tema
 from ui.acceso import PantallaAcceso, dibujar_logo
 from ui.componentes import Notificador, informar
+from ui.fondos import Estanteria
 from ui.tareas import GestorTareas
 from ui.tema import COLOR
 
@@ -104,11 +105,10 @@ class AplicacionBiblioteca(tk.Tk):
         dibujar_logo(logo)
         textos = tk.Frame(marca, bg=COLOR["lateral"])
         textos.pack(side="left", padx=(12, 0))
-        tk.Label(textos, text="Biblioteca", font=tema.ft(15), fg="white", bg=COLOR["lateral"]).pack(anchor="w")
+        tk.Label(textos, text="Biblioteca", font=tema.fs(17), fg="white", bg=COLOR["lateral"]).pack(anchor="w")
         tk.Label(textos, text="Gestión de préstamos", font=tema.f(8), fg=COLOR["lateral_tenue"],
                  bg=COLOR["lateral"]).pack(anchor="w")
-        tk.Label(lateral, text="MENÚ", font=tema.f(8, "bold"), fg=COLOR["lateral_tenue"], bg=COLOR["lateral"],
-                 padx=22).pack(anchor="w", pady=(6, 6))
+        tk.Frame(lateral, bg=COLOR["lateral_hover"], height=1).pack(fill="x", padx=20, pady=(0, 10))
         for clave, texto, icono in SECCIONES:
             boton = BotonLateral(lateral, texto, icono, lambda c=clave: self.navegar(c))
             boton.pack(fill="x")
@@ -130,6 +130,7 @@ class AplicacionBiblioteca(tk.Tk):
         texto_bloquear.pack(side="left", fill="x", expand=True)
         for widget in (bloquear, texto_bloquear):
             widget.bind("<Button-1>", lambda e: self.bloquear())
+        Estanteria(lateral).pack(fill="both", expand=True, pady=(14, 0))
 
     def _construir_barra_estado(self, padre):
         barra = tk.Frame(padre, bg=COLOR["tarjeta"], highlightthickness=1, highlightbackground=COLOR["borde"],
@@ -201,7 +202,8 @@ class AplicacionBiblioteca(tk.Tk):
         if self._actual and self._actual != clave:
             self._vistas[self._actual].pack_forget()
         vista = self._vistas[clave]
-        if self._actual != clave:
+        cambia = self._actual != clave
+        if cambia:
             vista.pack(fill="both", expand=True)
         self._actual = clave
         for nombre, boton in self._botones.items():
@@ -211,6 +213,8 @@ class AplicacionBiblioteca(tk.Tk):
         except Exception as error:  # noqa: BLE001
             log.exception("Error al mostrar la vista %s", clave)
             self.manejar_error(error)
+        if cambia:
+            vista.revelar()
 
     def refrescar_vista_actual(self):
         if self._actual and self._actual in self._vistas:

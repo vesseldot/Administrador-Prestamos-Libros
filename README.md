@@ -263,6 +263,10 @@ python verificar.py      # diagnóstico: dependencias, configuración, Redis, mo
 python main.py           # aplicación
 ```
 
+### Apariencia y animaciones
+
+La interfaz usa la paleta índigo del proyecto, tipografía con serifa para los títulos (Cambria, Georgia u otra disponible en el sistema) y la fuente sans del sistema para la lectura. Las animaciones (contadores del dashboard, transiciones de botones, avisos y el fondo de la pantalla de acceso) son breves y no bloquean la ventana ni las tareas en curso. Para desactivarlas, define la variable de entorno `BIBLIOTECA_SIN_ANIMACIONES=1` antes de ejecutar; las pruebas ya la activan por sí solas.
+
 Si `main.py` se ejecuta con un Python que no tiene las dependencias (por ejemplo, la extensión Code Runner usando el Python global), se relanza automáticamente con `.venv` o `../.venv` si existen.
 
 ## Modelo semántico: distribución y licencia
@@ -368,7 +372,8 @@ Título, autor, año y argumento corresponden a las obras reales; **las sinopsis
 ├── db_prestamos.py          Préstamos con historial (WATCH/MULTI)
 ├── db_libros.py             Índice semántico en ChromaDB
 ├── servicios.py             Lógica de negocio y API pública para la interfaz (ver INTEGRACION.md)
-├── ui/                      Interfaz: tema, componentes, acceso, descarga del modelo y 7 secciones
+├── ui/                      Interfaz: tema, fondos ilustrados y animaciones (fondos.py), componentes, acceso,
+│                            descarga del modelo y 7 secciones
 ├── datos/                   Datasets y consultas de evaluación
 ├── tests/                   Pruebas automatizadas
 ├── docker-compose.yml       Redis con persistencia (opcional)

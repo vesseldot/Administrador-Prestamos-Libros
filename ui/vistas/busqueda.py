@@ -49,8 +49,8 @@ class VistaBusqueda(Vista):
 
         cuerpo = ttk.Frame(self.cuerpo)
         cuerpo.pack(fill="both", expand=True)
-        cuerpo.columnconfigure(0, weight=3)
-        cuerpo.columnconfigure(1, weight=2, minsize=tema.px(330))
+        cuerpo.columnconfigure(0, weight=3, uniform="partes")
+        cuerpo.columnconfigure(1, weight=2, minsize=tema.px(330), uniform="partes")
         cuerpo.rowconfigure(0, weight=1)
         caja_tabla = tarjeta(cuerpo, 12)
         caja_tabla.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
