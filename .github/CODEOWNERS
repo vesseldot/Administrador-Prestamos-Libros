@@ -1,0 +1,10 @@
+# Revisores automáticos por área. Reemplaza los usuarios de ejemplo por los usuarios
+# reales de GitHub y quita el "#" inicial de cada regla para activarla.
+# La última regla que coincide con un archivo es la que se aplica.
+
+# *                       @usuario-backend
+# /ui/                    @usuario-frontend
+# /ui/tareas.py           @usuario-backend
+# /tests/test_interfaz.py @usuario-frontend
+# /tests/test_arquitectura.py @usuario-backend
+# /INTEGRACION.md         @usuario-backend @usuario-frontend

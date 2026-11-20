@@ -1,0 +1,42 @@
+# Redis para el Administrador de Préstamos de Libros.
+#
+#   Iniciar:   docker compose up -d
+#   Estado:    docker compose ps
+#   Registro:  docker compose logs -f redis
+#   Detener:   docker compose stop          (conserva los datos)
+#   Eliminar:  docker compose down          (conserva el volumen con los datos)
+#   Borrar TODO, incluidos los datos:  docker compose down -v
+#
+# Lee REDIS_PORT, REDIS_PASSWORD y REDIS_BIND del archivo .env de esta carpeta.
+
+name: biblioteca
+
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: biblioteca-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command:
+      - sh
+      - -c
+      - >-
+        if [ -n "$$REDIS_PASSWORD" ];
+        then exec redis-server --appendonly yes --appendfsync everysec --save 300 10 --requirepass "$$REDIS_PASSWORD";
+        else exec redis-server --appendonly yes --appendfsync everysec --save 300 10;
+        fi
+    ports:
+      - "${REDIS_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_datos:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'if [ -n "$$REDIS_PASSWORD" ]; then redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping; else redis-cli ping; fi | grep -q PONG'
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis_datos:

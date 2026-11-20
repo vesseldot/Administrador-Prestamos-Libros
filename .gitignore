@@ -1,0 +1,107 @@
+# ===================== Secretos y configuración local =====================
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+clave*
+!clave*.py
+operador.hash
+*.secret
+*.secrets
+
+# ===================== Datos locales (nunca se comparten) =====================
+# ChromaDB (índice semántico, embeddings locales)
+chroma_db/
+chroma/
+*.sqlite3
+*.sqlite
+*.db
+*.parquet
+*.npy
+*.npz
+modelo_activo.txt
+# Redis (persistencia si se monta una carpeta en lugar del volumen de Docker)
+dump.rdb
+*.rdb
+appendonly.aof
+appendonlydir/
+*.aof
+redis_datos/
+redis-data/
+# Exportaciones ARCO con datos personales
+datos_P*.json
+exportaciones/
+
+# ===================== Modelos descargados y sus pesos =====================
+modelos_descargados/
+.cache/
+huggingface/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.h5
+*.gguf
+
+# ===================== Python =====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+.conda/
+
+# Pruebas y cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ===================== Registros y temporales =====================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+tmp/
+temp/
+
+# ===================== IDE y sistema operativo =====================
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===================== Asistentes y agentes de IA =====================
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+.cursor/
+.aider*
+.continue/
