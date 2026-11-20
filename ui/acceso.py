@@ -111,7 +111,8 @@ class CambioContrasena(tk.Toplevel):
         self.campos = {}
         for fila, (clave, texto) in enumerate((("actual", "Contraseña actual"), ("nueva", "Nueva contraseña"),
                                                ("repetir", "Repite la nueva"))):
-            ttk.Label(cuerpo, text=texto, style="Campo.TLabel").grid(row=fila, column=0, sticky="w", pady=4, padx=(0, 12))
+            ttk.Label(cuerpo, text=texto, style="Campo.TLabel").grid(row=fila, column=0, sticky="w", pady=4,
+                                                                     padx=(0, 12))
             entrada = ttk.Entry(cuerpo, show="•", width=30)
             entrada.grid(row=fila, column=1, pady=4)
             self.campos[clave] = entrada

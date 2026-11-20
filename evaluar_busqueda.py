@@ -142,7 +142,8 @@ def main():
 
     claves = argumentos.modelos or [c for c in MODELOS if esta_descargado(c)]
     libros = cargar_libros()
-    consultas = json.loads(Path(config.DIR_DATOS / "consultas_evaluacion.json").read_text(encoding="utf-8"))["consultas"]
+    ruta_consultas = Path(config.DIR_DATOS / "consultas_evaluacion.json")
+    consultas = json.loads(ruta_consultas.read_text(encoding="utf-8"))["consultas"]
     print(f"{len(libros)} libros, {len(consultas)} consultas, modelos: {', '.join(claves)}\n")
     resultados = []
     for nombre, clave, instruccion in variantes(claves):

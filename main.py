@@ -92,7 +92,8 @@ def main():
         servicio = ServicioBiblioteca.crear()
     except redis.AuthenticationError:
         return error_de_arranque("Redis rechazó la conexión",
-                                 "El usuario o la contraseña de Redis (REDIS_USUARIO / REDIS_PASSWORD) no son correctos.")
+                                 "El usuario o la contraseña de Redis (REDIS_USUARIO / REDIS_PASSWORD) "
+                                 "no son correctos.")
     except (redis.ConnectionError, redis.TimeoutError) as error:
         registro.error("Redis no disponible: %s", type(error).__name__)
         return error_de_arranque(

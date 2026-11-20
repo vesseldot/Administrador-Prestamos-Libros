@@ -1,5 +1,6 @@
 """Conexión a Redis, espacio de nombres de llaves y registro de actividad."""
 import json
+import logging
 from datetime import datetime
 
 import redis
@@ -7,6 +8,8 @@ import redis
 import config
 
 VERSION_ESQUEMA = "2"
+
+log = logging.getLogger("biblioteca")
 
 
 class ErrorBaseOcupada(Exception):
@@ -134,8 +137,8 @@ class RegistroActividad:
             pipe.lpush(self.llaves.actividad, json.dumps(evento, ensure_ascii=False))
             pipe.ltrim(self.llaves.actividad, 0, self.maximo - 1)
             pipe.execute()
-        except redis.RedisError:
-            pass
+        except redis.RedisError as error:
+            log.warning("No se pudo registrar el evento de actividad %s (%s)", tipo, type(error).__name__)
 
     def recientes(self, cantidad: int = 20) -> list[dict]:
         eventos = []

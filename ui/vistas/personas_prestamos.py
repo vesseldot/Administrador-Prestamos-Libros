@@ -95,7 +95,8 @@ class VistaPersonasConPrestamo(Vista):
             vencidos += sum(1 for p in prestamos if p["vencido"])
             grupos.append((padre, hijos))
         seleccion = self.tabla.seleccion()
-        self.tabla.cargar_arbol(grupos, mensaje_vacio="Ninguna persona coincide." if consulta or self.solo_vencidos.get()
+        filtrando = consulta or self.solo_vencidos.get()
+        self.tabla.cargar_arbol(grupos, mensaje_vacio="Ninguna persona coincide." if filtrando
                                 else "No hay personas con préstamos activos.")
         if seleccion and self.tabla.tree.exists(seleccion[0]):
             self.tabla.tree.selection_set(seleccion[0])

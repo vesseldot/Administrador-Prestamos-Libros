@@ -59,7 +59,8 @@ class VistaDashboard(Vista):
         actividad = tarjeta(inferior)
         actividad.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
         encabezado_tarjeta(actividad, "Actividad reciente", "Últimas operaciones registradas en el sistema.")
-        self.tabla_actividad = Tabla(actividad, [("fecha", "Fecha", 130, "w", False), ("evento", "Evento", 150, "w", False),
+        self.tabla_actividad = Tabla(actividad, [("fecha", "Fecha", 130, "w", False),
+                                                 ("evento", "Evento", 150, "w", False),
                                                  ("descripcion", "Detalle", 320)], alto=8,
                                      mensaje_vacio="Aún no hay actividad registrada.", icono_vacio="reloj",
                                      clave_id="n")
@@ -93,7 +94,8 @@ class VistaDashboard(Vista):
         self.indicadores["personas"].actualizar(estadisticas["personas"],
                                                 f"{estadisticas['personas_con_prestamo']} con préstamo activo")
         self.indicadores["prestamos_activos"].actualizar(estadisticas["prestamos_activos"],
-                                                         f"máximo {self.app.servicio.max_libros_por_persona} por persona")
+                                                         f"máximo {self.app.servicio.max_libros_por_persona} "
+                                                         "por persona")
         self.indicadores["historicos"].actualizar(estadisticas["prestamos_historicos"], "registrados desde el inicio")
         filas = [{"n": n, "fecha": fecha_corta(e.get("fecha", "")), "evento": EVENTOS.get(e.get("tipo"), e.get("tipo")),
                   "descripcion": e.get("descripcion", "")} for n, e in enumerate(eventos)]

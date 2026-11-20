@@ -35,8 +35,10 @@ class DialogoDescargaModelo(tk.Toplevel):
                  ("Destino", str(datos["directorio"])),
                  ("Espacio libre", f"{datos['espacio_libre'] / 1e9:.1f} GB")]
         for n, (etiqueta, valor) in enumerate(filas):
-            ttk.Label(cuerpo, text=etiqueta, style="Suave.TLabel").grid(row=n, column=0, sticky="w", padx=(0, 16), pady=2)
-            ttk.Label(cuerpo, text=valor, style="Campo.TLabel", wraplength=tema.px(420)).grid(row=n, column=1, sticky="w", pady=2)
+            ttk.Label(cuerpo, text=etiqueta, style="Suave.TLabel").grid(row=n, column=0, sticky="w",
+                                                                       padx=(0, 16), pady=2)
+            ttk.Label(cuerpo, text=valor, style="Campo.TLabel", wraplength=tema.px(420)).grid(
+                row=n, column=1, sticky="w", pady=2)
         self.barra = ttk.Progressbar(cuerpo, mode="determinate", maximum=1000, length=tema.px(460),
                                      style="CupoOk.Horizontal.TProgressbar")
         self.barra.grid(row=len(filas), column=0, columnspan=2, sticky="we", pady=(16, 4))

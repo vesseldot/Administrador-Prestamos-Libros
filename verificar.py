@@ -67,7 +67,8 @@ def main() -> int:
     print("\nModelo de embeddings")
     import torch
     dispositivo = resolver_dispositivo()
-    linea(True, f"dispositivo: {dispositivo}" + (f" ({torch.cuda.get_device_name(0)})" if dispositivo == "cuda" else ""))
+    nombre_gpu = f" ({torch.cuda.get_device_name(0)})" if dispositivo == "cuda" else ""
+    linea(True, f"dispositivo: {dispositivo}{nombre_gpu}")
     estado = gestor_modelos.estado(MODELO_POR_DEFECTO)
     descargado = linea(estado["disponible"],
                        f"{estado['repositorio']} (rev {estado['revision'][:10]}, {estado['tamano']}) en "

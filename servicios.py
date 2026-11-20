@@ -628,13 +628,15 @@ def describir_error(error: Exception) -> dict:
     if isinstance(error, (redis.ConnectionError, redis.TimeoutError)):
         return {"titulo": "Sin conexión con Redis",
                 "mensaje": f"No se pudo comunicar con Redis en {config.REDIS_HOST}:{config.REDIS_PORT}. "
-                           "Verifica que el servidor esté encendido y vuelve a intentarlo.", "tipo": "error", "categoria": "redis"}
+                           "Verifica que el servidor esté encendido y vuelve a intentarlo.",
+                "tipo": "error", "categoria": "redis"}
     if isinstance(error, ErrorCifrado):
         return {"titulo": "Error de integridad",
                 "mensaje": "Un dato cifrado no pudo verificarse. Puede haber sido alterado o la llave no es la "
                            "correcta.", "tipo": "error", "categoria": "integridad"}
     if isinstance(error, ErrorLlave):
-        return {"titulo": "Llave de cifrado inválida", "mensaje": str(error), "tipo": "error", "categoria": "integridad"}
+        return {"titulo": "Llave de cifrado inválida", "mensaje": str(error), "tipo": "error",
+                "categoria": "integridad"}
     return {"titulo": "Error inesperado",
             "mensaje": f"La operación no se completó ({type(error).__name__}). El detalle técnico quedó en el "
                        "registro biblioteca.log.", "tipo": "error", "categoria": "inesperado"}

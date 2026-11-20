@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import ttk
 
 import config
-from ui import tema
 from ui.acceso import CambioContrasena
 from ui.componentes import Boton, Tabla, caja_texto, confirmar, encabezado_tarjeta, escribir, tarjeta
 from ui.tema import COLOR
@@ -118,7 +117,8 @@ class VistaConfiguracion(Vista):
         botones.pack(fill="x", pady=(12, 0))
         self.btn_migrar = Boton(botones, "Migrar cifrado heredado", icono="sincronizar", comando=self.migrar_cifrado)
         self.btn_migrar.pack(side="left")
-        Boton(botones, "Aviso de privacidad", icono="escudo", comando=lambda: mostrar_aviso(self)).pack(side="left", padx=8)
+        Boton(botones, "Aviso de privacidad", icono="escudo",
+              comando=lambda: mostrar_aviso(self)).pack(side="left", padx=8)
 
         acceso = tarjeta(marco)
         acceso.pack(fill="x", pady=(12, 0))
@@ -160,7 +160,8 @@ class VistaConfiguracion(Vista):
 
     def _refrescar_modelos(self):
         info = self.servicio.info_modelo()
-        self.badge_modelo.configure(text=f"Activo: {info['modelo']} · {info['dimensiones']} dim · {info['dispositivo']}")
+        self.badge_modelo.configure(
+            text=f"Activo: {info['modelo']} · {info['dimensiones']} dim · {info['dispositivo']}")
         self._modelos = {m["clave"]: m for m in self.servicio.catalogo_modelos()}
         filas = [{**m, "estilo_txt": {"e5": "prefijos e5", "instruccion": "instrucción"}.get(m["estilo"], "directas")}
                  for m in self._modelos.values()]
@@ -239,7 +240,9 @@ class VistaConfiguracion(Vista):
 
     def _mostrar_informe(self, informe, extra=""):
         def lista(titulo, ids):
-            return [f"{titulo}: {len(ids)}"] + ([f"   {', '.join(ids[:40])}{' …' if len(ids) > 40 else ''}"] if ids else [])
+            if not ids:
+                return [f"{titulo}: 0"]
+            return [f"{titulo}: {len(ids)}", f"   {', '.join(ids[:40])}{' …' if len(ids) > 40 else ''}"]
         lineas = ["Estado: " + ("CONSISTENTE ✓" if informe.consistente else "CON DIFERENCIAS"), ""]
         lineas += lista("Libros en Redis sin documento en Chroma", informe.faltan_en_chroma)
         lineas += lista("Documentos en Chroma sin registro en Redis", informe.huerfanos_en_chroma)

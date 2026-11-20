@@ -83,7 +83,8 @@ class FichaPersona(tk.Toplevel):
         filas = [
             ("Fecha de nacimiento", f"{persona['fecha_nacimiento']} (edad {persona['edad']})"),
             ("Género", persona["genero"]), ("Correo", persona["correo"]), ("Teléfono", persona["telefono"]),
-            ("Domicilio", ", ".join(x for x in (persona["calle_numero"], persona["colonia"] and f"col. {persona['colonia']}",
+            ("Domicilio", ", ".join(x for x in (persona["calle_numero"],
+                                                persona["colonia"] and f"col. {persona['colonia']}",
                                                 persona["ciudad"], persona["estado"],
                                                 f"C.P. {persona['codigo_postal']}") if x)),
             ("Aviso de privacidad", f"Aceptado el {fecha_corta(persona['fecha_aviso'])}"
@@ -92,7 +93,8 @@ class FichaPersona(tk.Toplevel):
             ("Última rectificación", fecha_corta(persona.get("fecha_actualizacion", ""))),
         ]
         for n, (etiqueta, valor) in enumerate(filas):
-            ttk.Label(datos, text=etiqueta, style="Suave.TLabel").grid(row=n, column=0, sticky="nw", padx=(0, 18), pady=2)
+            ttk.Label(datos, text=etiqueta, style="Suave.TLabel").grid(row=n, column=0, sticky="nw",
+                                                                      padx=(0, 18), pady=2)
             ttk.Label(datos, text=valor, style="Campo.TLabel", wraplength=420, justify="left").grid(
                 row=n, column=1, sticky="w", pady=2)
         prestamos = tarjeta(self, 14)
@@ -103,7 +105,8 @@ class FichaPersona(tk.Toplevel):
         ttk.Label(cabeza, text=f"HISTORIAL DE PRÉSTAMOS · {activos}/{maximo} ACTIVOS",
                   style="Seccion.TLabel").pack(side="left")
         ttk.Progressbar(cabeza, maximum=maximo, value=activos, length=120,
-                        style=("CupoLleno" if activos >= maximo else "CupoOk") + ".Horizontal.TProgressbar").pack(side="right")
+                        style=("CupoLleno" if activos >= maximo else "CupoOk") + ".Horizontal.TProgressbar"
+                        ).pack(side="right")
         tabla = Tabla(prestamos, [("titulo", "Libro", 240), ("fecha_prestamo", "Prestado", 120, "w", False),
                                   ("fecha_limite", "Vence", 90, "w", False),
                                   ("fecha_devolucion", "Devuelto", 120, "w", False),
@@ -240,7 +243,8 @@ class VistaPersonas(Vista):
             self.refrescar()
             self.tabla.seleccionar(persona_id)
         Formulario(self, f"Rectificar datos de {persona_id}", CAMPOS_FORMULARIO, guardar, valores=persona,
-                   columnas=2, icono="editar", extra=("Leer aviso de privacidad", lambda: mostrar_aviso(self), "escudo"))
+                   columnas=2, icono="editar",
+                   extra=("Leer aviso de privacidad", lambda: mostrar_aviso(self), "escudo"))
 
     def ver_ficha(self):
         persona_id = self._seleccionada()
@@ -280,7 +284,8 @@ class VistaPersonas(Vista):
             return
         if not confirmar(self, "Cancelación de datos personales",
                          f"¿Eliminar todos los datos personales de {fila['id']}? Esta acción no se puede deshacer. "
-                         "Su historial de préstamos se conservará solo con el identificador.", "Eliminar", peligro=True):
+                         "Su historial de préstamos se conservará solo con el identificador.",
+                         "Eliminar", peligro=True):
             return
         self.servicio.eliminar_persona(fila["id"])
         self.exito(f"Datos de {fila['id']} eliminados.")

@@ -9,8 +9,8 @@ from chromadb.config import Settings
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from db_libros import GestorLibros  # noqa: E402
-from modelo_simulado import ModeloSimulado, fabrica_simulada  # noqa: E402,F401
 from db_redis import Llaves  # noqa: E402
+from modelo_simulado import fabrica_simulada  # noqa: E402
 from seguridad import Cifrador  # noqa: E402
 from servicios import ServicioBiblioteca  # noqa: E402
 
