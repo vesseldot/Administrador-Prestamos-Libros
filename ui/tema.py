@@ -1,12 +1,20 @@
 """Paleta, tipografía y estilos ttk de la aplicación."""
+import os
 import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import ttk
 
+# Las animaciones son breves y se ejecutan con `after`, sin bloquear la interfaz ni las tareas en curso.
+# Pueden desactivarse con BIBLIOTECA_SIN_ANIMACIONES=1 (accesibilidad, equipos lentos o pruebas).
+ANIMACIONES = os.environ.get("BIBLIOTECA_SIN_ANIMACIONES", "").strip().lower() not in ("1", "true", "si", "sí")
+
 COLOR = {
-    "fondo": "#F1F4F9",
+    "fondo": "#F3F5FA",
     "tarjeta": "#FFFFFF",
-    "borde": "#E2E8F0",
+    "banda": "#E8ECFA",
+    "banda_trazo": "#D3D9F3",
+    "dorado": "#D9B26A",
+    "borde": "#E3E7F1",
     "borde_fuerte": "#CBD5E1",
     "texto": "#1E293B",
     "suave": "#64748B",
@@ -27,13 +35,14 @@ COLOR = {
     "aviso_claro": "#FEF3C7",
     "info": "#0369A1",
     "info_claro": "#E0F2FE",
-    "fila_alterna": "#F8FAFC",
-    "seleccion": "#E0E7FF",
-    "cabecera_tabla": "#F8FAFC",
+    "fila_alterna": "#F7F8FC",
+    "seleccion": "#E3E8FF",
+    "cabecera_tabla": "#F5F6FB",
 }
 
 FUENTE = "Segoe UI"
 FUENTE_TITULO = "Segoe UI Semibold"
+FUENTE_SERIF = "Georgia"
 MONO = "Consolas"
 ESCALA = 1.0
 
@@ -55,10 +64,19 @@ def fm(tamano: int = 10):
     return (MONO, tamano)
 
 
+def fs(tamano: int = 14, *estilo):
+    """Tipografía con serifa para títulos y portadas; los números y la lectura corrida usan la sans."""
+    return (FUENTE_SERIF, tamano, *estilo)
+
+
 def elegir_fuentes(raiz):
-    global FUENTE, FUENTE_TITULO, MONO
+    global FUENTE, FUENTE_TITULO, FUENTE_SERIF, MONO
     familias = set(tkfont.families(raiz))
-    FUENTE = next((f for f in ("Segoe UI Variable Text", "Segoe UI", "Helvetica") if f in familias), "TkDefaultFont")
+    FUENTE = next((f for f in ("Segoe UI Variable Text", "Segoe UI", "SF Pro Text", "Inter", "Helvetica Neue",
+                               "Helvetica") if f in familias), "TkDefaultFont")
+    FUENTE_SERIF = next((f for f in ("Cambria", "Georgia", "Palatino Linotype", "Iowan Old Style",
+                                     "Bitstream Charter", "Charter", "DejaVu Serif", "Times New Roman")
+                         if f in familias), FUENTE)
     FUENTE_TITULO = next((f for f in ("Segoe UI Variable Display Semib", "Segoe UI Semibold", FUENTE)
                           if f in familias), FUENTE)
     MONO = next((f for f in ("Cascadia Code", "Consolas", "Courier New") if f in familias), "TkFixedFont")
@@ -96,9 +114,9 @@ def aplicar_tema(raiz: tk.Tk):
     e.configure("TituloVista.TLabel", background=C["fondo"], foreground=C["texto"],
                 font=(FUENTE_TITULO, 19))
     e.configure("SubtituloVista.TLabel", background=C["fondo"], foreground=C["suave"], font=(FUENTE, 10))
-    e.configure("Titulo.TLabel", background=C["tarjeta"], foreground=C["texto"], font=(FUENTE_TITULO, 12))
+    e.configure("Titulo.TLabel", background=C["tarjeta"], foreground=C["texto"], font=(FUENTE_SERIF, 13))
     e.configure("Subtitulo.TLabel", background=C["tarjeta"], foreground=C["suave"])
-    e.configure("Seccion.TLabel", background=C["tarjeta"], foreground=C["suave"], font=(FUENTE, 8, "bold"))
+    e.configure("Seccion.TLabel", background=C["tarjeta"], foreground=C["suave"], font=(FUENTE, 9, "bold"))
     for nombre, (fg, bg) in {"Info": (C["primario"], C["primario_claro"]),
                              "Ok": (C["exito"], C["exito_claro"]),
                              "Mal": (C["peligro"], C["peligro_claro"]),
@@ -173,11 +191,11 @@ def aplicar_tema(raiz: tk.Tk):
 
     e.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
     e.configure("Treeview", background=C["tarjeta"], fieldbackground=C["tarjeta"],
-                foreground=C["texto"], rowheight=px(28), borderwidth=0, font=(FUENTE, 10))
+                foreground=C["texto"], rowheight=px(32), borderwidth=0, font=(FUENTE, 10))
     e.map("Treeview", background=[("selected", C["seleccion"])],
           foreground=[("selected", C["lateral"])])
     e.configure("Treeview.Heading", background=C["cabecera_tabla"], foreground=C["suave"],
-                font=(FUENTE, 9, "bold"), relief="flat", padding=(8, 8),
+                font=(FUENTE, 9, "bold"), relief="flat", padding=(8, 9),
                 bordercolor=C["borde"], lightcolor=C["cabecera_tabla"], darkcolor=C["cabecera_tabla"])
     e.map("Treeview.Heading", background=[("active", C["borde"])])
 

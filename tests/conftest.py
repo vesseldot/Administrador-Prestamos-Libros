@@ -1,5 +1,9 @@
+import os
 import sys
 from pathlib import Path
+
+# Las pruebas leen valores finales de la interfaz: sin animaciones el resultado es inmediato y determinista.
+os.environ.setdefault("BIBLIOTECA_SIN_ANIMACIONES", "1")
 
 import chromadb
 import fakeredis
