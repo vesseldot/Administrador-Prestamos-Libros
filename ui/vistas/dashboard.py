@@ -40,8 +40,8 @@ class VistaDashboard(Vista):
 
         rapidas = tarjeta(self.cuerpo, 14)
         rapidas.pack(fill="x", pady=(0, 12))
-        tk.Label(rapidas, text="ACCIONES RÁPIDAS", font=tema.f(8, "bold"), fg=COLOR["suave"],
-                 bg=COLOR["tarjeta"]).pack(side="left", padx=(0, 16))
+        tk.Label(rapidas, text="Acciones rápidas", font=tema.fs(12), fg=COLOR["texto"],
+                 bg=COLOR["tarjeta"]).pack(side="left", padx=(0, 18))
         for texto, icono, destino, contexto in (
                 ("Registrar libro", "agregar", "libros", {"accion": "alta"}),
                 ("Registrar persona", "personas", "personas", {"accion": "alta"}),
@@ -87,10 +87,12 @@ class VistaDashboard(Vista):
         total = estadisticas["libros"]
         porcentaje = f"{estadisticas['disponibles'] / total:.0%} del catálogo" if total else "sin libros"
         self.indicadores["libros"].actualizar(total, f"{estadisticas['documentos_indice']} en el índice semántico")
-        self.indicadores["disponibles"].actualizar(estadisticas["disponibles"], porcentaje)
+        self.indicadores["disponibles"].actualizar(estadisticas["disponibles"], porcentaje,
+                                                   estadisticas["disponibles"] / total if total else None)
         vencidos = estadisticas["prestamos_vencidos"]
         self.indicadores["prestados"].actualizar(estadisticas["prestados"],
-                                                 f"{vencidos} vencido(s)" if vencidos else "ninguno vencido")
+                                                 f"{vencidos} vencido(s)" if vencidos else "ninguno vencido",
+                                                 estadisticas["prestados"] / total if total else None)
         self.indicadores["personas"].actualizar(estadisticas["personas"],
                                                 f"{estadisticas['personas_con_prestamo']} con préstamo activo")
         self.indicadores["prestamos_activos"].actualizar(estadisticas["prestamos_activos"],

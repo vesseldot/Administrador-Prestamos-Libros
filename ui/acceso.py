@@ -1,10 +1,12 @@
 """Pantalla de acceso y bloqueo de sesión del operador."""
+import math
 import tkinter as tk
 from tkinter import ttk
 
 import config
 from ui import tema
 from ui.componentes import Boton, cabecera_dialogo, centrar, tarjeta
+from ui.fondos import Animacion, EscenaNocturna
 from ui.tema import COLOR
 
 
@@ -20,7 +22,12 @@ def dibujar_logo(lienzo: tk.Canvas, x: int = 0, y: int = 0, fondo: str = COLOR["
 
 
 class PantallaAcceso(tk.Frame):
-    """Cubre toda la ventana hasta que el operador se identifica."""
+    """Cubre toda la ventana hasta que el operador se identifica.
+
+    A la izquierda, la sala de lectura (ilustración animada); a la derecha, el formulario.
+    """
+
+    ANCHO_PANEL = 440
 
     def __init__(self, raiz, control, al_entrar, motivo: str = ""):
         super().__init__(raiz, bg=COLOR["lateral"])
@@ -28,33 +35,46 @@ class PantallaAcceso(tk.Frame):
         self.al_entrar = al_entrar
         self.modo_crear = not control.configurado()
         self._temporizador = None
+        self._sacudida = None
 
-        caja = tk.Frame(self, bg=COLOR["tarjeta"], padx=36, pady=32)
-        caja.place(relx=0.5, rely=0.5, anchor="center")
+        panel = tk.Frame(self, bg=COLOR["tarjeta"], width=tema.px(self.ANCHO_PANEL))
+        panel.pack(side="right", fill="y")
+        panel.pack_propagate(False)
+        escena = EscenaNocturna(self, "Biblioteca", ["Acervo, personas y préstamos en un solo lugar.",
+                                                      "Busca libros por lo que cuentan, no solo por su título."])
+        escena.pack(side="left", fill="both", expand=True)
+
+        caja = tk.Frame(panel, bg=COLOR["tarjeta"], padx=tema.px(48))
+        caja.place(relx=0.5, rely=0.5, anchor="center", relwidth=1.0)
         logo = tk.Canvas(caja, width=48, height=48, bg=COLOR["tarjeta"], highlightthickness=0)
-        logo.pack()
+        logo.pack(anchor="w")
         dibujar_logo(logo)
-        tk.Label(caja, text="Biblioteca", font=tema.ft(20), fg=COLOR["texto"], bg=COLOR["tarjeta"]).pack(pady=(10, 0))
-        subtitulo = ("Crea la contraseña del operador" if self.modo_crear
-                     else motivo or "Ingresa la contraseña del operador")
-        tk.Label(caja, text=subtitulo, font=tema.f(10), fg=COLOR["suave"], bg=COLOR["tarjeta"]).pack(pady=(2, 18))
+        titulo = "Crea tu contraseña" if self.modo_crear else "Bienvenido de nuevo"
+        tk.Label(caja, text=titulo, font=tema.fs(24), fg=COLOR["texto"], bg=COLOR["tarjeta"],
+                 anchor="w").pack(fill="x", pady=(18, 0))
+        subtitulo = ("Será la llave del operador. Mínimo 8 caracteres." if self.modo_crear
+                     else motivo or "Ingresa la contraseña del operador para continuar.")
+        tk.Label(caja, text=subtitulo, font=tema.f(10), fg=COLOR["suave"], bg=COLOR["tarjeta"], anchor="w",
+                 justify="left", wraplength=tema.px(self.ANCHO_PANEL - 100)).pack(fill="x", pady=(6, 22))
 
-        ttk.Label(caja, text="Contraseña", style="Campo.TLabel").pack(anchor="w")
-        self.entrada = ttk.Entry(caja, show="•", width=34, font=tema.f(11))
-        self.entrada.pack(fill="x", pady=(4, 10))
+        self._campos = tk.Frame(caja, bg=COLOR["tarjeta"])
+        self._campos.pack(fill="x")
+        ttk.Label(self._campos, text="Contraseña", style="Campo.TLabel").pack(anchor="w")
+        self.entrada = ttk.Entry(self._campos, show="•", font=tema.f(11))
+        self.entrada.pack(fill="x", pady=(5, 12))
         self.confirmacion = None
         if self.modo_crear:
-            ttk.Label(caja, text="Repite la contraseña", style="Campo.TLabel").pack(anchor="w")
-            self.confirmacion = ttk.Entry(caja, show="•", width=34, font=tema.f(11))
-            self.confirmacion.pack(fill="x", pady=(4, 10))
+            ttk.Label(self._campos, text="Repite la contraseña", style="Campo.TLabel").pack(anchor="w")
+            self.confirmacion = ttk.Entry(self._campos, show="•", font=tema.f(11))
+            self.confirmacion.pack(fill="x", pady=(5, 12))
         self.mensaje = tk.Label(caja, text="", font=tema.f(9), fg=COLOR["peligro"], bg=COLOR["tarjeta"],
-                                wraplength=300, justify="left")
-        self.mensaje.pack(anchor="w")
+                                wraplength=tema.px(self.ANCHO_PANEL - 100), justify="left", anchor="w")
+        self.mensaje.pack(fill="x")
         self.boton = Boton(caja, "Crear y entrar" if self.modo_crear else "Entrar", icono="candado",
-                           variante="primario", comando=self._enviar)
+                           variante="primario", comando=self._enviar, pady=10)
         self.boton.pack(fill="x", pady=(10, 0))
-        tk.Label(caja, text=f"La sesión se bloquea tras {config.MINUTOS_BLOQUEO_INACTIVIDAD} min de inactividad.",
-                 font=tema.f(8), fg=COLOR["tenue"], bg=COLOR["tarjeta"]).pack(pady=(14, 0))
+        tk.Label(caja, text=f"La sesión se bloquea tras {config.MINUTOS_BLOQUEO_INACTIVIDAD} minutos sin actividad.",
+                 font=tema.f(9), fg=COLOR["tenue"], bg=COLOR["tarjeta"], anchor="w").pack(fill="x", pady=(18, 0))
         for entrada in filter(None, (self.entrada, self.confirmacion)):
             entrada.bind("<Return>", lambda e: self._enviar())
         self.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -72,6 +92,18 @@ class PantallaAcceso(tk.Frame):
             self.mensaje.configure(text="")
             self._temporizador = None
 
+    def _sacudir(self):
+        """Si la contraseña es incorrecta, los campos se agitan un instante para indicarlo."""
+        if not tema.ANIMACIONES:
+            return
+        if self._sacudida:
+            self._sacudida.cancelar()
+        self._sacudida = Animacion(
+            self._campos, 320,
+            lambda p: self._campos.pack_configure(padx=(max(0, int(10 * math.sin(p * 18) * (1 - p))),
+                                                         max(0, int(-10 * math.sin(p * 18) * (1 - p))))),
+            fin=lambda: self._campos.pack_configure(padx=0), curva=lambda t: t)
+
     def _enviar(self):
         contrasena = self.entrada.get()
         if self.modo_crear:
@@ -79,6 +111,7 @@ class PantallaAcceso(tk.Frame):
                 self.control.crear_contrasena(contrasena, self.confirmacion.get())
             except ValueError as error:
                 self.mensaje.configure(text=str(error))
+                self._sacudir()
                 return
             self._salir()
             return
@@ -88,6 +121,7 @@ class PantallaAcceso(tk.Frame):
             self._salir()
         else:
             self.mensaje.configure(text=mensaje)
+            self._sacudir()
             self._actualizar_espera()
 
     def _salir(self):

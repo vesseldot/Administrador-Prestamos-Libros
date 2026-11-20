@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from ui import iconos, tema
+from ui.fondos import Animacion, mezclar
 from ui.tema import COLOR
 from validaciones import clave_natural
 
@@ -89,6 +90,8 @@ class Boton(tk.Frame):
         super().__init__(padre, bg=self._color("bg"), cursor="hand2", takefocus=1,
                          highlightthickness=1, highlightbackground=self._color("borde"),
                          highlightcolor=COLOR["primario"], padx=padx, pady=pady)
+        self._actual_bg = self._color("bg")
+        self._anim = None
         self._partes = []
         if icono:
             lbl = tk.Label(self, text=iconos.glifo(icono, self), font=iconos.fuente(self, tamano + 1),
@@ -117,22 +120,37 @@ class Boton(tk.Frame):
         return COLOR.get(valor, valor)
 
     def _pintar(self, fondo: str, texto: str | None = None):
+        self._actual_bg = fondo
         self.configure(bg=fondo)
         for parte in self._partes:
             parte.configure(bg=fondo, fg=texto or self._color("fg"))
 
+    def _transicion(self, destino: str, ms: int = 110):
+        """Cambia de color de forma gradual; ante un clic o un cambio de estado se corta de inmediato."""
+        if getattr(self, "_anim", None):
+            self._anim.cancelar()
+        origen = getattr(self, "_actual_bg", destino)
+        self._anim = Animacion(self, ms, lambda p: self._pintar(mezclar(origen, destino, p)),
+                               fin=lambda: self._pintar(destino), intervalo_ms=18)
+
+    def _detener_transicion(self):
+        if getattr(self, "_anim", None):
+            self._anim.cancelar()
+            self._anim = None
+
     def _entrar(self, _e=None):
         self._dentro = True
         if self._habilitado:
-            self._pintar(self._color("hover"))
+            self._transicion(self._color("hover"))
 
     def _salir(self, _e=None):
         self._dentro = False
         if self._habilitado:
-            self._pintar(self._color("bg"))
+            self._transicion(self._color("bg"))
 
     def _presionar(self, _e=None):
         if self._habilitado:
+            self._detener_transicion()
             self._pintar(self._color("presion"))
 
     def _soltar(self, evento=None):
@@ -140,6 +158,7 @@ class Boton(tk.Frame):
             return
         x, y = self.winfo_pointerx() - self.winfo_rootx(), self.winfo_pointery() - self.winfo_rooty()
         dentro = 0 <= x <= self.winfo_width() and 0 <= y <= self.winfo_height()
+        self._detener_transicion()
         self._pintar(self._color("hover") if dentro else self._color("bg"))
         if dentro:
             self.invocar()
@@ -149,6 +168,7 @@ class Boton(tk.Frame):
             self._comando()
 
     def habilitar(self, valor: bool = True):
+        self._detener_transicion()
         self._habilitado = valor
         self.configure(cursor="hand2" if valor else "arrow", takefocus=1 if valor else 0,
                        highlightbackground=self._color("borde") if valor else
@@ -253,7 +273,7 @@ class Tabla(ttk.Frame):
         self._ancho_previo = 0
         for clave, titulo, ancho, *resto in columnas:
             alineacion = resto[0] if resto else "w"
-            self.tree.heading(clave, text=titulo.upper(), anchor=alineacion,
+            self.tree.heading(clave, text=titulo, anchor=alineacion,
                               command=lambda c=clave: self.ordenar(c))
             self.tree.column(clave, width=int(ancho * tema.ESCALA), minwidth=40, anchor=alineacion, stretch=False)
             self._anchos_base[clave] = ancho
@@ -354,7 +374,7 @@ class Tabla(ttk.Frame):
             marca = ""
             if self._orden and self._orden[0] == clave:
                 marca = "  ▼" if self._orden[1] else "  ▲"
-            self.tree.heading(clave, text=titulo.upper() + marca)
+            self.tree.heading(clave, text=titulo + marca)
 
     def ordenar(self, clave: str):
         descendente = bool(self._orden and self._orden[0] == clave and not self._orden[1])
@@ -404,7 +424,16 @@ class Notificador:
         tk.Label(caja, text=texto, font=tema.f(10), fg=COLOR["texto"], bg=COLOR[fondo],
                  justify="left", wraplength=360).pack(side="left")
         self._activos.append(caja)
+        caja._dx = 0
         self._reubicar()
+        if tema.ANIMACIONES:
+            caja._dx = 56
+
+            def deslizar(p, c=caja):
+                if c in self._activos:
+                    c._dx = int(56 * (1 - p))
+                    c.place_configure(x=-24 + c._dx)
+            Animacion(caja, 220, deslizar)
         for widget in (caja, *caja.winfo_children()):
             widget.bind("<Button-1>", lambda e, c=caja: self._cerrar(c))
         self.raiz.after(duracion_ms, lambda: self._cerrar(caja))
@@ -412,7 +441,7 @@ class Notificador:
     def _reubicar(self):
         desplazamiento = -46
         for caja in reversed(self._activos):
-            caja.place(relx=1.0, rely=1.0, anchor="se", x=-24, y=desplazamiento)
+            caja.place(relx=1.0, rely=1.0, anchor="se", x=-24 + getattr(caja, "_dx", 0), y=desplazamiento)
             caja.lift()
             caja.update_idletasks()
             desplazamiento -= caja.winfo_reqheight() + 8
@@ -425,33 +454,72 @@ class Notificador:
 
 
 class Indicador(tk.Frame):
-    """Tarjeta de indicador del Dashboard."""
+    """Tarjeta de indicador del Dashboard: el número sube hasta su valor y, si aplica, muestra una proporción."""
 
     def __init__(self, padre, titulo: str, icono: str, color: str = "primario", comando=None):
         super().__init__(padre, bg=COLOR["tarjeta"], highlightthickness=1,
-                         highlightbackground=COLOR["borde"], padx=18, pady=16)
+                         highlightbackground=COLOR["borde"], padx=20, pady=14)
         claro = {"primario": "primario_claro", "exito": "exito_claro", "peligro": "peligro_claro",
                  "aviso": "aviso_claro", "info": "info_claro"}[color]
+        self._color = COLOR[color]
+        self._valor_actual = 0
+        self._anim_valor = self._anim_barra = None
+        self._fraccion = 0.0
         cabecera = tk.Frame(self, bg=COLOR["tarjeta"])
         cabecera.pack(fill="x")
-        tk.Label(cabecera, text=titulo.upper(), font=tema.f(8, "bold"), fg=COLOR["suave"],
-                 bg=COLOR["tarjeta"]).pack(side="left", anchor="n")
+        tk.Label(cabecera, text=titulo, font=tema.f(10), fg=COLOR["suave"],
+                 bg=COLOR["tarjeta"]).pack(side="left", anchor="n", pady=(4, 0))
         tk.Label(cabecera, text=iconos.glifo(icono, self), font=iconos.fuente(self, 14),
-                 fg=COLOR[color], bg=COLOR[claro], padx=7, pady=4).pack(side="right")
-        self._valor = tk.Label(self, text="—", font=tema.ft(26), fg=COLOR["texto"], bg=COLOR["tarjeta"])
-        self._valor.pack(anchor="w", pady=(4, 0))
+                 fg=COLOR[color], bg=COLOR[claro], padx=8, pady=5).pack(side="right")
+        self._valor = tk.Label(self, text="—", font=tema.f(26, "bold"), fg=COLOR["texto"], bg=COLOR["tarjeta"])
+        self._valor.pack(anchor="w", pady=(2, 0))
+        self._barra = tk.Canvas(self, height=6, bg=COLOR["tarjeta"], highlightthickness=0)
+        self._barra.bind("<Configure>", lambda e: self._dibujar_barra())
         self._detalle = tk.Label(self, text="", font=tema.f(9), fg=COLOR["suave"], bg=COLOR["tarjeta"])
-        self._detalle.pack(anchor="w")
+        self._detalle.pack(anchor="w", pady=(4, 0))
         if comando:
-            for widget in (self, cabecera, self._valor, self._detalle, *cabecera.winfo_children()):
+            for widget in (self, cabecera, self._valor, self._detalle, self._barra, *cabecera.winfo_children()):
                 widget.configure(cursor="hand2")
                 widget.bind("<Button-1>", lambda e: comando())
             self.bind("<Enter>", lambda e: self.configure(highlightbackground=COLOR["primario"]))
             self.bind("<Leave>", lambda e: self.configure(highlightbackground=COLOR["borde"]))
 
-    def actualizar(self, valor, detalle: str = ""):
-        self._valor.configure(text=str(valor))
+    def _dibujar_barra(self, fraccion: float | None = None):
+        ancho = self._barra.winfo_width()
+        fraccion = self._fraccion if fraccion is None else fraccion
+        self._barra.delete("all")
+        self._barra.create_rectangle(0, 1, ancho, 5, fill=COLOR["borde"], outline="")
+        if fraccion > 0:
+            self._barra.create_rectangle(0, 1, max(4, ancho * fraccion), 5, fill=self._color, outline="")
+
+    def actualizar(self, valor, detalle: str = "", fraccion: float | None = None):
+        """`fraccion` (0 a 1) muestra una barra de proporción bajo el número; None la oculta."""
         self._detalle.configure(text=detalle)
+        if isinstance(valor, int) and not isinstance(valor, bool):
+            origen, destino = self._valor_actual, valor
+            if self._anim_valor:
+                self._anim_valor.cancelar()
+            if origen == destino:
+                self._valor.configure(text=str(destino))
+            else:
+                self._anim_valor = Animacion(
+                    self._valor, 750, lambda p: self._valor.configure(text=str(round(origen + (destino - origen) * p))),
+                    fin=lambda: self._valor.configure(text=str(destino)))
+            self._valor_actual = destino
+        else:
+            self._valor.configure(text=str(valor))
+        if fraccion is None:
+            self._barra.pack_forget()
+            self._fraccion = 0.0
+            return
+        if not self._barra.winfo_manager():
+            self._barra.pack(fill="x", pady=(8, 0), before=self._detalle)
+        inicio, fin = self._fraccion, max(0.0, min(1.0, fraccion))
+        if self._anim_barra:
+            self._anim_barra.cancelar()
+        self._anim_barra = Animacion(self._barra, 750, lambda p: self._dibujar_barra(inicio + (fin - inicio) * p),
+                                     fin=lambda: setattr(self, "_fraccion", fin))
+        self._fraccion = fin
 
 
 def cabecera_dialogo(ventana, titulo: str, subtitulo: str | None = None, icono: str | None = None):
@@ -462,7 +530,7 @@ def cabecera_dialogo(ventana, titulo: str, subtitulo: str | None = None, icono: 
                  fg=COLOR["lateral_texto"], bg=COLOR["lateral"]).pack(side="left", padx=(0, 14))
     textos = tk.Frame(cabecera, bg=COLOR["lateral"])
     textos.pack(side="left", fill="x")
-    tk.Label(textos, text=titulo, font=tema.ft(13), fg="white", bg=COLOR["lateral"]).pack(anchor="w")
+    tk.Label(textos, text=titulo, font=tema.fs(14), fg="white", bg=COLOR["lateral"]).pack(anchor="w")
     if subtitulo:
         tk.Label(textos, text=subtitulo, font=tema.f(9), fg=COLOR["lateral_texto"],
                  bg=COLOR["lateral"]).pack(anchor="w")
@@ -488,7 +556,7 @@ class Dialogo(tk.Toplevel):
         cuerpo.pack(fill="both", expand=True)
         tk.Label(cuerpo, text=iconos.glifo(icono, self), font=iconos.fuente(self, 24), fg=COLOR[color],
                  bg=COLOR["tarjeta"]).grid(row=0, column=0, rowspan=2, sticky="n", padx=(0, 16))
-        tk.Label(cuerpo, text=titulo, font=tema.ft(13), fg=COLOR["texto"], bg=COLOR["tarjeta"],
+        tk.Label(cuerpo, text=titulo, font=tema.fs(14), fg=COLOR["texto"], bg=COLOR["tarjeta"],
                  anchor="w").grid(row=0, column=1, sticky="w")
         tk.Label(cuerpo, text=mensaje, font=tema.f(10), fg=COLOR["texto"], bg=COLOR["tarjeta"],
                  justify="left", wraplength=440, anchor="w").grid(row=1, column=1, sticky="w", pady=(6, 0))

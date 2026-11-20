@@ -120,11 +120,11 @@ Administrador-Prestamos-Libros/
 ├── evaluar_busqueda.py         [script]   Métricas de búsqueda
 ├── comparar_modelos.py         [script]   Comparación de dos modelos
 ├── ui/                         [fuente]   Interfaz Tkinter
-│   ├── app.py · acceso.py · descarga_modelo.py · tareas.py
+│   ├── app.py · acceso.py · descarga_modelo.py · tareas.py · fondos.py
 │   ├── componentes.py · tema.py · iconos.py · __init__.py
 │   └── vistas/  base.py · dashboard.py · libros.py · busqueda.py · personas.py
 │                prestamos.py · personas_prestamos.py · configuracion.py · __init__.py
-├── tests/                      [pruebas]  13 archivos, 151 pruebas
+├── tests/                      [pruebas]  14 archivos, 159 pruebas
 ├── datos/                      [datos]    3 CSV (200 libros) + consultas_evaluacion.json
 ├── docs/                       [docs]     Esta documentación y sus PDF
 │   └── herramientas/           [script]   Generador de PDF
@@ -172,6 +172,7 @@ Administrador-Prestamos-Libros/
 | `descarga_modelo.py` | Diálogo de descarga del modelo con progreso. | `DialogoDescargaModelo`. |
 | `tareas.py` | Hilo trabajador y cola hacia Tkinter. | `GestorTareas` (`ejecutar`, `en_interfaz`, `progreso`, `cerrar`). |
 | `componentes.py` | Componentes reutilizables. | `Boton`, `Tabla`, `Formulario`, `Dialogo`, `Notificador`, `Indicador`, `Ayuda`, `Portada`; `informar`, `confirmar`, `tarjeta`, `caja_texto`, `escribir`, `centrar`, `cabecera_dialogo`, `encabezado_tarjeta`. |
+| `fondos.py` | Fondos ilustrados dibujados con `Canvas` y animaciones breves basadas en `after`, que no bloquean la ventana. | `EscenaNocturna`, `Estanteria`, `BandaTitulo`, `Animacion`. |
 | `tema.py` | Paleta (`COLOR`), tipografías y estilos ttk; escala para alta densidad. | `aplicar_tema`, `px`, `f`, `ft`, `fm`, `ESCALA`. |
 | `iconos.py` | Iconos de Segoe Fluent Icons con respaldo Unicode. | `GLIFOS`, `RESPALDO`, `glifo`, `fuente`. |
 | `vistas/base.py` | Clase base de las secciones y utilidades. | `Vista` (`construir`, `al_mostrar`, `refrescar`, `tarea`, `exito`, `aviso`, `accion`), `contenido_ficha`, `fecha_corta`, `etiqueta_estado`. |
@@ -241,7 +242,7 @@ flowchart TD
 
 ### 3.2 Variables de entorno
 
-La lista completa, con valores por defecto, está en [INSTALACION.md](INSTALACION.md#6-archivo-de-configuración-env) y en `.env.example`. Las variables que lee el código son: `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`, `REDIS_USUARIO`, `REDIS_SSL`, `REDIS_PREFIJO`, `REDIS_TIMEOUT`, `BIBLIOTECA_CHROMA_PATH`, `BIBLIOTECA_DIR_SECRETOS`, `BIBLIOTECA_MODELO`, `BIBLIOTECA_DIR_MODELOS`, `BIBLIOTECA_PERMITIR_DESCARGA`, `BIBLIOTECA_DISPOSITIVO`, `BIBLIOTECA_LOTE_EMBEDDINGS`, `BIBLIOTECA_DIAS_PRESTAMO`, `BIBLIOTECA_MINUTOS_BLOQUEO`, `BIBLIOTECA_DIR_PORTADAS`, `BIBLIOTECA_DESCARGAR_PORTADAS`, `BIBLIOTECA_AES_KEY`, `BIBLIOTECA_OPERADOR_HASH` y `BIBLIOTECA_KEY` (llave heredada). Las pruebas usan además `BIBLIOTECA_PRUEBAS_REALES`. `REDIS_BIND` solo la usa `docker-compose.yml`.
+La lista completa, con valores por defecto, está en [INSTALACION.md](INSTALACION.md#6-archivo-de-configuración-env) y en `.env.example`. Las variables que lee el código son: `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`, `REDIS_PASSWORD`, `REDIS_USUARIO`, `REDIS_SSL`, `REDIS_PREFIJO`, `REDIS_TIMEOUT`, `BIBLIOTECA_CHROMA_PATH`, `BIBLIOTECA_DIR_SECRETOS`, `BIBLIOTECA_MODELO`, `BIBLIOTECA_DIR_MODELOS`, `BIBLIOTECA_PERMITIR_DESCARGA`, `BIBLIOTECA_DISPOSITIVO`, `BIBLIOTECA_LOTE_EMBEDDINGS`, `BIBLIOTECA_DIAS_PRESTAMO`, `BIBLIOTECA_MINUTOS_BLOQUEO`, `BIBLIOTECA_DIR_PORTADAS`, `BIBLIOTECA_DESCARGAR_PORTADAS`, `BIBLIOTECA_SIN_ANIMACIONES` (la lee `ui/tema.py`), `BIBLIOTECA_AES_KEY`, `BIBLIOTECA_OPERADOR_HASH` y `BIBLIOTECA_KEY` (llave heredada). Las pruebas usan además `BIBLIOTECA_PRUEBAS_REALES`. `REDIS_BIND` solo la usa `docker-compose.yml`.
 
 ### 3.3 Modelo de hilos
 

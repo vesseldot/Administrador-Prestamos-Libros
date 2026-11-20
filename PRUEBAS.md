@@ -7,8 +7,8 @@ Todos los resultados de este documento provienen de ejecuciones reales. Lo que n
 ## 1. Cómo ejecutarlas
 
 ```powershell
-python -m pytest tests                                        # 150 pruebas (fakeredis + Chroma temporal + modelo simulado)
-$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 151 pruebas: añade la integración con servicios reales
+python -m pytest tests                                        # 158 pruebas (fakeredis + Chroma temporal + modelo simulado)
+$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 159 pruebas: añade la integración con servicios reales
 python verificar.py                                           # diagnóstico del entorno
 python evaluar_busqueda.py                                    # calidad de la búsqueda semántica
 ```
@@ -28,11 +28,12 @@ Las pruebas unitarias usan **fakeredis** y una ChromaDB en una carpeta temporal:
 | `test_portadas.py` | 26 | ✅ | Normalización a JPEG de 600×900 como máximo; transparencia; rechazo de archivos que no son imagen, diminutos o de más de 15 MB; guardar, consultar, quitar y miniaturas que se renuevan al reemplazar la imagen; identificadores que no son de libro (por ejemplo `../fuera`). Open Library simulado: búsqueda por ISBN con título coincidente, descarte de la edición de otro libro y búsqueda por título, sin resultados, error de red y reintento tras un fallo puntual. Servicio: asignar desde un archivo, validaciones, borrado de la portada al eliminar el libro, búsqueda individual, búsqueda desactivada, descarga solo de las que faltan con progreso, detención a petición e interrupción clara sin red. |
 | `test_gestor_modelos.py` | 9 | ✅ | Revisiones fijadas y metadatos de los 5 modelos; filtro de archivos (sin ONNX, OpenVINO ni `.bin`); modelo ausente; descarga con progreso creciente hasta el total; reutilización sin volver a descargar; reanudación de solo los archivos faltantes; sin conexión; espacio insuficiente; revisión incompleta; mensaje claro al cargar un modelo ausente. Usa un Hub simulado, sin red. |
 | `test_config.py` | 4 | ✅ | Valores por defecto válidos; mensajes claros para cada variable inválida; rutas relativas de ChromaDB; **persistencia de ChromaDB comprobada desde otro proceso**. |
-| `test_arquitectura.py` | 35 | ✅ | Por cada archivo de `ui/`: no importa Redis, ChromaDB, el modelo, los módulos `db_*`, `portadas` ni Pillow; no usa atributos internos del servicio; solo llama a métodos que existen en la API pública. El backend no importa `ui` ni `tkinter`. Se comprobó además que detecta un acceso interno, un método inexistente y dos importaciones prohibidas en un fragmento de ejemplo. |
+| `test_arquitectura.py` | 37 | ✅ | Por cada archivo de `ui/`: no importa Redis, ChromaDB, el modelo, los módulos `db_*`, `portadas` ni Pillow; no usa atributos internos del servicio; solo llama a métodos que existen en la API pública. El backend no importa `ui` ni `tkinter`. Se comprobó además que detecta un acceso interno, un método inexistente y dos importaciones prohibidas en un fragmento de ejemplo. |
 | `test_api_interfaz.py` | 10 | ✅ | Claves y valores de la API para la interfaz (sistema, modelo, tokens, personas, préstamos, actividad, seguridad, datos de ejemplo); `describir_error` por categoría; `ControlAcceso` (espera tras fallos, cambio de contraseña). |
 | `test_demo.py` | 2 | ✅ | El modo de demostración usa fakeredis y el prefijo `demo:`, carga 200 libros, 4 personas y un préstamo vencido, acepta la contraseña `demo1234` y no escribe el `modelo_activo.txt` real. |
+| `test_animaciones.py` | 6 | ✅ | Interpolación y suavizado; la animación llega al valor final sin bloquear Tk y se puede cancelar; con `BIBLIOTECA_SIN_ANIMACIONES=1` se aplica el estado final de inmediato; el contador del Dashboard termina en su valor; la banda de título y la escena de la pantalla de acceso se dibujan sin errores. Aportadas por @miasmee. |
 | `test_integracion_real.py` | 1 | ✅ | Ver sección 3. |
-| **Total** | **151** | **151 aprobadas** | 35 s con la integración real; unos 19 s sin ella. |
+| **Total** | **159** | **159 aprobadas** | Unos 23 s sin la integración real. |
 
 ### Errores encontrados y corregidos durante las pruebas
 

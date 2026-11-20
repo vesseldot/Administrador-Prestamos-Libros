@@ -58,6 +58,10 @@ python demo_interfaz.py
 
 Abre la aplicación completa con datos de ejemplo **en memoria**. No necesita Redis ni GPU y no toca datos reales. La contraseña es `demo1234`. Las opciones `--sin-datos` y `--modelo-real` están descritas en [docs/INSTALACION.md](docs/INSTALACION.md#12-modo-de-demostración).
 
+## Apariencia y animaciones
+
+La interfaz usa la paleta índigo del proyecto, tipografía con serifa para los títulos (Cambria, Georgia u otra disponible en el sistema) y la fuente sans del sistema para la lectura. Las animaciones (contadores del dashboard, transiciones de botones, avisos y el fondo de la pantalla de acceso) son breves y no bloquean la ventana ni las tareas en curso. Para desactivarlas, define la variable de entorno `BIBLIOTECA_SIN_ANIMACIONES=1` antes de ejecutar; las pruebas ya la activan por sí solas.
+
 ## Pruebas
 
 ```bash

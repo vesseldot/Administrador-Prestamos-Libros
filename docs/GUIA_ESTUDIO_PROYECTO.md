@@ -53,7 +53,7 @@ flowchart TD
 
 > «Hicimos un administrador de préstamos de libros en Python con interfaz Tkinter. Usamos **dos bases NoSQL** con papeles distintos. **Redis**, una base clave-valor, guarda los libros, las personas y los préstamos con estructuras como HASH, SET y ZSET, y usa transacciones optimistas con WATCH para que dos préstamos simultáneos no presten el mismo libro. **ChromaDB**, una base vectorial, guarda las sinopsis convertidas en vectores de 1024 dimensiones por el modelo **Qwen3-Embedding-0.6B**, que se ejecuta en local. Así podemos buscar «un niño mago que va a una escuela» y encontrar *Harry Potter* aunque no compartan palabras.
 >
-> Como no hay una transacción que abarque las dos bases, usamos **compensación**: si Redis falla después de escribir en Chroma, deshacemos lo de Chroma. Los datos personales se cifran campo por campo con **AES-256-GCM**, siguiendo los principios de la LFPDPPP. El código está dividido en capas: la interfaz solo habla con el servicio, y una prueba automática lo verifica. Tenemos 151 pruebas automatizadas y el repositorio está en GitHub con ramas protegidas.»
+> Como no hay una transacción que abarque las dos bases, usamos **compensación**: si Redis falla después de escribir en Chroma, deshacemos lo de Chroma. Los datos personales se cifran campo por campo con **AES-256-GCM**, siguiendo los principios de la LFPDPPP. El código está dividido en capas: la interfaz solo habla con el servicio, y una prueba automática lo verifica. Tenemos 159 pruebas automatizadas y el repositorio está en GitHub con ramas protegidas.»
 
 ---
 
@@ -952,7 +952,7 @@ Tkinter no es seguro entre hilos. Todo cambio en los widgets se programa en el h
 Con fakeredis (Redis en memoria), una Chroma temporal y un modelo simulado determinista (`modelo_simulado.py`). Una prueba de integración opcional (`BIBLIOTECA_PRUEBAS_REALES=1`) usa Redis, Chroma y Qwen reales con un prefijo aislado y limpia solo sus llaves.
 
 **41. ¿Cuántas pruebas hay y qué cubren?**
-151: validaciones (9), seguridad (11), personas (10), libros (17), préstamos (13), API de la interfaz (10), arquitectura (35), configuración (4), gestor de modelos (9), demostración (2), interfaz (4), portadas (26) e integración real (1).
+159: validaciones (9), seguridad (11), personas (10), libros (17), préstamos (13), API de la interfaz (10), arquitectura (37), configuración (4), gestor de modelos (9), demostración (2), interfaz (4), animaciones (6), portadas (26) e integración real (1).
 
 **42. ¿Qué es el modo de demostración?**
 `python demo_interfaz.py` abre la interfaz con fakeredis, Chroma en memoria y el modelo simulado, con datos de ejemplo y la contraseña `demo1234`. Sirve para mostrar el sistema o revisar la interfaz sin tocar datos reales.
@@ -1115,7 +1115,7 @@ flowchart LR
     S --> L["LFPDPPP · ARCO · minimización"]
     I --> TK["Tkinter · 7 secciones · GestorTareas"]
     I --> API["Solo API pública de ServicioBiblioteca"]
-    C --> PR["151 pruebas · fakeredis · modelo simulado"]
+    C --> PR["159 pruebas · fakeredis · modelo simulado"]
     C --> GH["GitHub: ramas protegidas · PR · CODEOWNERS · CI"]
 ```
 

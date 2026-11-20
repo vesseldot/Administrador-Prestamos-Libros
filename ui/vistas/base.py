@@ -4,6 +4,7 @@ from tkinter import ttk
 
 from ui import tema
 from ui.componentes import Boton
+from ui.fondos import BandaTitulo
 from ui.tema import COLOR
 
 
@@ -21,27 +22,23 @@ class Vista(ttk.Frame):
     subtitulo = ""
 
     def __init__(self, padre, app):
-        super().__init__(padre, padding=(28, 22, 28, 18))
+        super().__init__(padre)
         self.app = app
         self.servicio = app.servicio
-        cabecera = ttk.Frame(self)
-        cabecera.pack(fill="x", pady=(0, 16))
-        self.acciones = tk.Frame(cabecera, bg=COLOR["fondo"])
-        self.acciones.pack(side="right", anchor="s")
-        textos = ttk.Frame(cabecera)
-        textos.pack(side="left", fill="x", expand=True)
-        ttk.Label(textos, text=self.titulo, style="TituloVista.TLabel").pack(anchor="w")
-        if self.subtitulo:
-            subtitulo = ttk.Label(textos, text=self.subtitulo, style="SubtituloVista.TLabel", justify="left")
-            subtitulo.pack(anchor="w", pady=(2, 0), fill="x")
-            textos.bind("<Configure>", lambda e: subtitulo.configure(wraplength=max(200, e.width - 8)), add="+")
-        self.cuerpo = ttk.Frame(self)
+        self.banda = BandaTitulo(self, self.titulo, self.subtitulo, semilla=sum(map(ord, self.titulo)))
+        self.banda.pack(fill="x")
+        self.acciones = self.banda.acciones
+        self.cuerpo = ttk.Frame(self, padding=(tema.px(30), tema.px(20), tema.px(30), tema.px(18)))
         self.cuerpo.pack(fill="both", expand=True)
         self.construir()
 
+    def revelar(self):
+        """Pequeña animación de entrada: la cabecera marca la sección que se acaba de abrir."""
+        self.banda.revelar()
+
     def accion(self, texto, icono, comando, variante="secundario", ayuda=None) -> Boton:
         boton = Boton(self.acciones, texto, icono=icono, comando=comando, variante=variante,
-                      fondo=COLOR["fondo"], ayuda=ayuda)
+                      fondo=COLOR["banda"], ayuda=ayuda)
         boton.pack(side="right", padx=(8, 0))
         return boton
 
@@ -73,9 +70,9 @@ ESTILO_ESTADO = {"Disponible": "Ok", "Prestado": "Aviso", "No disponible": "Mal"
 
 
 def ficha_libro(texto: tk.Text):
-    texto.tag_configure("titulo", font=tema.ft(14), spacing3=2)
+    texto.tag_configure("titulo", font=tema.fs(16), spacing3=2)
     texto.tag_configure("autor", foreground=COLOR["suave"], font=tema.f(11), spacing3=8)
-    texto.tag_configure("etq", foreground=COLOR["suave"], font=tema.f(8, "bold"))
+    texto.tag_configure("etq", foreground=COLOR["suave"], font=tema.f(9, "bold"))
     texto.tag_configure("valor", font=tema.f(10), spacing3=6)
     texto.tag_configure("ok", foreground=COLOR["exito"], font=tema.f(10, "bold"))
     texto.tag_configure("mal", foreground=COLOR["peligro"], font=tema.f(10, "bold"))
@@ -98,10 +95,10 @@ def contenido_ficha(libro: dict | None, mensaje_vacio: str) -> list[tuple[str, s
     if "similitud" in libro:
         partes.append((f"      similitud {libro['similitud']:.1%}", "suave"))
     partes.append(("\n\n", ""))
-    pares = [("ID", "id"), ("ISBN", "isbn"), ("EDITORIAL", "editorial"), ("GÉNERO", "genero"),
-             ("TEMA", "tema"), ("IDIOMA", "idioma"), ("PASTA", "pasta"), ("PÁGINAS", "paginas"),
-             ("CALIFICACIÓN", "calificacion")]
+    pares = [("ID", "id"), ("ISBN", "isbn"), ("Editorial", "editorial"), ("Género", "genero"),
+             ("Tema", "tema"), ("Idioma", "idioma"), ("Pasta", "pasta"), ("Páginas", "paginas"),
+             ("Calificación", "calificacion")]
     for etiqueta, clave in pares:
         partes += [(f"{etiqueta}   ", "etq"), (f"{libro.get(clave, '')}\n", "valor")]
-    partes += [("\nSINOPSIS\n", "etq"), (libro.get("sinopsis") or "(sin sinopsis en el índice)", "sinopsis")]
+    partes += [("\nSinopsis\n", "etq"), (libro.get("sinopsis") or "(sin sinopsis en el índice)", "sinopsis")]
     return partes

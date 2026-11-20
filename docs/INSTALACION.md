@@ -94,6 +94,7 @@ Todas las variables están documentadas en [`.env.example`](../.env.example). La
 | `BIBLIOTECA_DIAS_PRESTAMO` | `14` | Plazo de préstamo. |
 | `BIBLIOTECA_DIR_PORTADAS` | `portadas` | Carpeta de las portadas (excluida de Git). |
 | `BIBLIOTECA_DESCARGAR_PORTADAS` | `1` | `0` impide buscar portadas en Open Library. |
+| `BIBLIOTECA_SIN_ANIMACIONES` | vacía | `1` desactiva las animaciones de la interfaz. |
 
 Las variables de entorno del sistema tienen prioridad sobre `.env`. `config.validar()` revisa los valores al arrancar y muestra un mensaje claro si alguno es inválido.
 

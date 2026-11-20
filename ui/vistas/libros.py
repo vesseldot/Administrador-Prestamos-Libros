@@ -26,7 +26,7 @@ CAMPOS_FORMULARIO = [
     ("sinopsis", "Sinopsis *", "texto", None),
 ]
 
-COLUMNAS = [("id", "ID", 70, "w", False), ("titulo", "Título", 230), ("autor", "Autor", 160),
+COLUMNAS = [("id", "ID", 84, "w", False), ("titulo", "Título", 230), ("autor", "Autor", 160),
             ("anio", "Año", 55, "center", False), ("genero", "Género", 130, "w", False),
             ("calificacion", "Calif.", 55, "center", False), ("estado", "Estado", 135, "w", False)]
 
@@ -76,8 +76,8 @@ class VistaLibros(Vista):
 
         cuerpo = ttk.Frame(self.cuerpo)
         cuerpo.pack(fill="both", expand=True)
-        cuerpo.columnconfigure(0, weight=3)
-        cuerpo.columnconfigure(1, weight=2, minsize=tema.px(330))
+        cuerpo.columnconfigure(0, weight=3, uniform="partes")
+        cuerpo.columnconfigure(1, weight=2, minsize=tema.px(330), uniform="partes")
         cuerpo.rowconfigure(0, weight=1)
 
         caja_tabla = tarjeta(cuerpo, 12)

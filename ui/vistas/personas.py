@@ -73,7 +73,7 @@ class FichaPersona(tk.Toplevel):
         self.resizable(False, False)
         cabecera = cabecera_dialogo(self, persona["nombre_completo"],
                                     f"{persona['id']} · {persona['tipo_usuario']} · {persona['ocupacion']}", "contacto")
-        tk.Label(cabecera, text="DERECHO ARCO DE ACCESO", font=tema.f(7, "bold"), fg=COLOR["lateral_texto"],
+        tk.Label(cabecera, text="Derecho ARCO de acceso", font=tema.f(8, "bold"), fg=COLOR["lateral_texto"],
                  bg=COLOR["lateral_hover"], padx=8, pady=3).pack(side="right", anchor="n")
         if not persona.get("integridad_ok", True):
             tk.Label(self, text="Algún dato no superó la verificación de integridad y no se muestra.",
@@ -102,7 +102,7 @@ class FichaPersona(tk.Toplevel):
         activos = sum(1 for p in historial if p["estado"] == "activo")
         cabeza = tk.Frame(prestamos, bg=COLOR["tarjeta"])
         cabeza.pack(fill="x", pady=(0, 8))
-        ttk.Label(cabeza, text=f"HISTORIAL DE PRÉSTAMOS · {activos}/{maximo} ACTIVOS",
+        ttk.Label(cabeza, text=f"Historial de préstamos · {activos} de {maximo} activos",
                   style="Seccion.TLabel").pack(side="left")
         ttk.Progressbar(cabeza, maximum=maximo, value=activos, length=120,
                         style=("CupoLleno" if activos >= maximo else "CupoOk") + ".Horizontal.TProgressbar"
