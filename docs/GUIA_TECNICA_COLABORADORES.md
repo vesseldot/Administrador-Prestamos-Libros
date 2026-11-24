@@ -48,7 +48,7 @@ El proyecto pertenece a la materia de Bases de Datos NoSQL. Demuestra:
 | Personas | Alta con aviso de privacidad, búsqueda, rectificación, ficha ARCO, exportación a JSON y cancelación. |
 | Préstamos | Préstamo de 1 a 3 libros; devolución de uno, varios o todos; historial. |
 | Personas con préstamos | Vista agrupada con el contacto oculto, que se revela durante 20 segundos. |
-| Configuración | Modelo (descarga, cambio y reindexado, tokens), sincronización Redis ↔ Chroma, seguridad, sistema, datos de ejemplo y descarga de las portadas que faltan. |
+| Configuración | Modelo (descarga y cambio, conservando lo que cada modelo ya procesó; tokens), sincronización Redis ↔ Chroma, seguridad, sistema, datos de ejemplo y descarga de las portadas que faltan. |
 
 ### 1.4 Tecnologías
 
@@ -124,7 +124,7 @@ Administrador-Prestamos-Libros/
 │   ├── componentes.py · tema.py · iconos.py · __init__.py
 │   └── vistas/  base.py · dashboard.py · libros.py · busqueda.py · personas.py
 │                prestamos.py · personas_prestamos.py · configuracion.py · __init__.py
-├── tests/                      [pruebas]  14 archivos, 159 pruebas
+├── tests/                      [pruebas]  15 archivos, 167 pruebas
 ├── datos/                      [datos]    3 CSV (200 libros) + consultas_evaluacion.json
 ├── docs/                       [docs]     Esta documentación y sus PDF
 │   └── herramientas/           [script]   Generador de PDF
@@ -324,7 +324,7 @@ Tabla completa de llaves y diagrama entidad-relación: **Anexo A**, sección 4.
 | `restaurar` | `upsert` desde una copia |
 | `buscar` | `query`, con `similitud = 1 − distancia` |
 | `todos` / `ids` / `contar` | `get` / `count` |
-| `cambiar_modelo` | Reindexa en otra colección |
+| `cambiar_modelo` | Sincroniza la colección del otro modelo: reutiliza vectores, calcula los que faltan y elimina sobrantes |
 
 **Relación con Redis**: comparten el `id`. Redis manda sobre los metadatos y la disponibilidad; Chroma guarda una copia para identificar los documentos. La búsqueda siempre completa sus resultados con Redis. Si las bases se desincronizan, Configuración › Sincronización detecta y repara las diferencias.
 
@@ -344,7 +344,7 @@ Tabla completa de llaves y diagrama entidad-relación: **Anexo A**, sección 4.
 | Descarga | Ofrecida por la aplicación o con `python gestionar_modelos.py descargar`; ~1.2 GB; se reanuda y se valida |
 | Recursos medidos | ~1.12 GB de VRAM cargado; pico de 1.74 GB al indexar |
 
-> **Advertencia sobre dimensiones.** Cada modelo tiene su propia colección. No cambies la `revision` ni la `dim` de una clave existente, y no mezcles vectores de modelos distintos. Para cambiar de modelo usa **Configuración › Modelo semántico › Usar el modelo seleccionado y reindexar**.
+> **Advertencia sobre dimensiones.** Cada modelo tiene su propia colección. No cambies la `revision` ni la `dim` de una clave existente, y no mezcles vectores de modelos distintos. Para cambiar de modelo usa **Configuración › Modelo semántico › Usar el modelo seleccionado**: cada colección conserva sus vectores y anota la revisión con la que se calcularon.
 
 Descripción completa (descarga paso a paso, búsqueda, errores, calidad medida y modelos alternativos): **Anexo C** ([MODELO_SEMANTICO.md](MODELO_SEMANTICO.md)).
 

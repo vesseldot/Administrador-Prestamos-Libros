@@ -231,7 +231,7 @@ sequenceDiagram
 
 ## 12. Cambio de modelo y sincronización
 
-- **Cambio de modelo** (`cambiar_modelo`): toma las sinopsis del índice actual y los metadatos de Redis, abre o crea la colección del nuevo modelo, la vacía, reindexa todo en lotes y solo entonces cambia el modelo activo y guarda `modelo_activo.txt`. Si algo falla, el modelo anterior sigue activo.
+- **Cambio de modelo** (`cambiar_modelo`): toma las sinopsis del índice actual y los metadatos de Redis, abre o crea la colección del nuevo modelo y la sincroniza (`_sincronizar_coleccion`): la colección conserva lo que ya procesó: compara por sinopsis y solo calcula los vectores de los libros nuevos o con la sinopsis editada, reutiliza el resto y elimina los que ya no existen. Si la colección se calculó con otra revisión del modelo, recalcula todo una vez. Solo entonces cambia el modelo activo, guarda `modelo_activo.txt` y deja en `resumen_ultimo_cambio` cuántos libros reutilizó, calculó y eliminó. Si algo falla, el modelo anterior sigue activo y lo avanzado queda guardado para el siguiente intento.
 - **Revisar sincronización**: compara los ids de Redis con los de Chroma, los metadatos (con tolerancia en los números con decimales) y `sync:pendientes`.
 - **Reparar**: copia a Chroma los metadatos de Redis de los libros desfasados o pendientes.
 - **Importar huérfanos**: valida y da de alta en Redis los documentos que solo existen en Chroma.

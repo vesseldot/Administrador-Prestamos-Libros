@@ -163,7 +163,7 @@ Detalle en [PRUEBAS.md](../PRUEBAS.md).
 > **Advertencia.** Los vectores de modelos distintos **no son comparables**. Una colección creada con un modelo de 1024 dimensiones no acepta vectores de 384, y aunque coincidiera la dimensión, mezclar modelos daría resultados sin sentido.
 
 - Cada modelo tiene **su propia colección** (`libros_<clave>`), y su dimensión queda registrada en los metadatos de la colección.
-- Para cambiar de modelo usa siempre **Configuración › Modelo semántico › Usar el modelo seleccionado y reindexar** (`ServicioBiblioteca.cambiar_modelo`). Reindexa todas las sinopsis en la colección del nuevo modelo y solo cambia de modelo si todo salió bien.
+- Para cambiar de modelo usa siempre **Configuración › Modelo semántico › Usar el modelo seleccionado** (`ServicioBiblioteca.cambiar_modelo`). La colección del modelo conserva lo que ya procesó: compara por sinopsis y solo calcula los vectores de los libros nuevos o con la sinopsis editada, reutiliza el resto y elimina los que ya no existen. Cada colección anota la revisión del modelo en sus metadatos; si no coincide, recalcula todos los vectores una vez. Solo cambia de modelo si todo salió bien, y si se interrumpe, el siguiente intento continúa donde quedó.
 - **No cambies** la `revision`, el `nombre_completo` ni la `dim` de una clave existente en `MODELOS`. Si necesitas otro modelo, **agrega una clave nueva**.
 - El modelo simulado (`modelo_simulado.py`, 64 dimensiones) solo se usa en pruebas y en la demostración, siempre con bases en memoria o temporales.
 

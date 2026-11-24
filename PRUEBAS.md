@@ -7,8 +7,8 @@ Todos los resultados de este documento provienen de ejecuciones reales. Lo que n
 ## 1. Cómo ejecutarlas
 
 ```powershell
-python -m pytest tests                                        # 158 pruebas (fakeredis + Chroma temporal + modelo simulado)
-$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 159 pruebas: añade la integración con servicios reales
+python -m pytest tests                                        # 166 pruebas (fakeredis + Chroma temporal + modelo simulado)
+$env:BIBLIOTECA_PRUEBAS_REALES="1"; python -m pytest tests    # 167 pruebas: añade la integración con servicios reales
 python verificar.py                                           # diagnóstico del entorno
 python evaluar_busqueda.py                                    # calidad de la búsqueda semántica
 ```
@@ -32,8 +32,9 @@ Las pruebas unitarias usan **fakeredis** y una ChromaDB en una carpeta temporal:
 | `test_api_interfaz.py` | 10 | ✅ | Claves y valores de la API para la interfaz (sistema, modelo, tokens, personas, préstamos, actividad, seguridad, datos de ejemplo); `describir_error` por categoría; `ControlAcceso` (espera tras fallos, cambio de contraseña). |
 | `test_demo.py` | 2 | ✅ | El modo de demostración usa fakeredis y el prefijo `demo:`, carga 200 libros, 4 personas y un préstamo vencido, acepta la contraseña `demo1234` y no escribe el `modelo_activo.txt` real. |
 | `test_animaciones.py` | 6 | ✅ | Interpolación y suavizado; la animación llega al valor final sin bloquear Tk y se puede cancelar; con `BIBLIOTECA_SIN_ANIMACIONES=1` se aplica el estado final de inmediato; el contador del Dashboard termina en su valor; la banda de título y la escena de la pantalla de acceso se dibujan sin errores. Aportadas por @miasmee. |
+| `test_memoria_modelos.py` | 8 | ✅ | Al volver a un modelo solo se calculan los libros nuevos; una sinopsis editada se recalcula y el resto se reutiliza; un libro eliminado desaparece del modelo al que se vuelve; los datos del libro se actualizan sin recalcular vectores; una interrupción conserva lo avanzado y el siguiente intento continúa; el cambio al mismo modelo no hace nada; otra revisión del modelo o una revisión desconocida obligan a recalcular todo una vez. Las 6 primeras son de @miasmee. |
 | `test_integracion_real.py` | 1 | ✅ | Ver sección 3. |
-| **Total** | **159** | **159 aprobadas** | Unos 23 s sin la integración real. |
+| **Total** | **167** | **167 aprobadas** | Unos 23 s sin la integración real. |
 
 ### Errores encontrados y corregidos durante las pruebas
 

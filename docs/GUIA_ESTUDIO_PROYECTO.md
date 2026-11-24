@@ -53,7 +53,7 @@ flowchart TD
 
 > «Hicimos un administrador de préstamos de libros en Python con interfaz Tkinter. Usamos **dos bases NoSQL** con papeles distintos. **Redis**, una base clave-valor, guarda los libros, las personas y los préstamos con estructuras como HASH, SET y ZSET, y usa transacciones optimistas con WATCH para que dos préstamos simultáneos no presten el mismo libro. **ChromaDB**, una base vectorial, guarda las sinopsis convertidas en vectores de 1024 dimensiones por el modelo **Qwen3-Embedding-0.6B**, que se ejecuta en local. Así podemos buscar «un niño mago que va a una escuela» y encontrar *Harry Potter* aunque no compartan palabras.
 >
-> Como no hay una transacción que abarque las dos bases, usamos **compensación**: si Redis falla después de escribir en Chroma, deshacemos lo de Chroma. Los datos personales se cifran campo por campo con **AES-256-GCM**, siguiendo los principios de la LFPDPPP. El código está dividido en capas: la interfaz solo habla con el servicio, y una prueba automática lo verifica. Tenemos 159 pruebas automatizadas y el repositorio está en GitHub con ramas protegidas.»
+> Como no hay una transacción que abarque las dos bases, usamos **compensación**: si Redis falla después de escribir en Chroma, deshacemos lo de Chroma. Los datos personales se cifran campo por campo con **AES-256-GCM**, siguiendo los principios de la LFPDPPP. El código está dividido en capas: la interfaz solo habla con el servicio, y una prueba automática lo verifica. Tenemos 167 pruebas automatizadas y el repositorio está en GitHub con ramas protegidas.»
 
 ---
 
@@ -540,7 +540,7 @@ def buscar_libros(self, texto: str, cantidad: int, solo_disponibles: bool = Fals
 
 ### 6.5 Por qué las colecciones son una por modelo
 
-Qwen produce vectores de 1024 dimensiones y MiniLM de 384. Chroma no puede comparar vectores de tamaños distintos, y aunque tuvieran el mismo tamaño, los vectores de modelos distintos **no son comparables**: cada modelo organiza el espacio a su manera. Por eso `cambiar_modelo` reindexa todo en una colección nueva y solo conmuta al nuevo modelo si todo salió bien.
+Qwen produce vectores de 1024 dimensiones y MiniLM de 384. Chroma no puede comparar vectores de tamaños distintos, y aunque tuvieran el mismo tamaño, los vectores de modelos distintos **no son comparables**: cada modelo organiza el espacio a su manera. Por eso cada modelo tiene su propia colección. Al cambiar de modelo, `cambiar_modelo` aprovecha lo que esa colección ya tenía: solo calcula los libros nuevos o con la sinopsis editada, y solo conmuta al nuevo modelo si todo salió bien.
 
 ---
 
@@ -802,7 +802,7 @@ Diagramas de secuencia de todos los flujos: [FLUJOS_DATOS.md](FLUJOS_DATOS.md).
 | **Añadir un campo al libro** (p. ej. «ubicación») | 1) `validaciones.CAMPOS_LIBRO` y `validar_libro`; 2) `CAMPOS_METADATOS_LIBRO` si debe ir también en Chroma; 3) el formulario en `ui/vistas/libros.py`; 4) los CSV de ejemplo, si es obligatorio; 5) pruebas en `tests/test_libros.py`; 6) documentar la migración, porque los libros existentes no tendrán el campo. |
 | **Añadir una vista** | Capítulo 8.4 de la [guía técnica](GUIA_TECNICA_COLABORADORES.md#84-procedimiento-para-agregar-una-vista-nueva). |
 | **Añadir una funcionalidad de backend** | Método en el gestor `db_*` → método público en `ServicioBiblioteca` → prueba en `tests/` → [INTEGRACION.md](../INTEGRACION.md) y `tests/test_api_interfaz.py`. |
-| **Añadir un modelo** | Nueva entrada en `modelos.MODELOS` con revisión, licencia, archivos, `dim`, `max_tokens` y estilo → `python gestionar_modelos.py descargar <clave>` → evaluar con `evaluar_busqueda.py` → cambiar desde Configuración (reindexa). |
+| **Añadir un modelo** | Nueva entrada en `modelos.MODELOS` con revisión, licencia, archivos, `dim`, `max_tokens` y estilo → `python gestionar_modelos.py descargar <clave>` → evaluar con `evaluar_busqueda.py` → cambiar desde Configuración (la primera vez calcula los vectores de todos los libros). |
 | **Añadir un tipo de usuario u ocupación** | Las listas `TIPOS_USUARIO` u `OCUPACIONES` en `validaciones.py`. |
 | **Cambiar el límite de libros o los días de préstamo** | `config.MAX_LIBROS_POR_PERSONA` (constante) o `BIBLIOTECA_DIAS_PRESTAMO` (variable de entorno). |
 
@@ -910,7 +910,7 @@ Qwen3-Embedding está entrenado así (de forma asimétrica): la instrucción ind
 La carga lanza `ModeloNoDisponible`, la interfaz ofrece descargarlo con una barra de progreso, y Redis sigue funcionando: se pueden gestionar personas y préstamos.
 
 **29. ¿Se puede cambiar de modelo? ¿Qué implica?**
-Sí, desde Configuración. Implica **reindexar** todos los libros en una colección nueva, porque cada modelo tiene su propio espacio vectorial. Se conmuta solo si la reindexación termina bien.
+Sí, desde Configuración. Cada modelo tiene su propio espacio vectorial y su propia colección, así que la primera vez hay que calcular los vectores de todos los libros. La colección **conserva lo que ya procesó**: al volver a un modelo solo se calculan los libros nuevos o con la sinopsis editada. Si la revisión del modelo cambió, se recalcula todo. Se conmuta solo si el proceso termina bien, y si se interrumpe, continúa donde quedó.
 
 **30. ¿Qué limitación tiene la búsqueda semántica?**
 Solo «sabe» lo que dice la sinopsis. Además, no es exacta: siempre devuelve los más parecidos, aunque ninguno sea relevante. Por eso se muestra el porcentaje de similitud.
@@ -952,7 +952,7 @@ Tkinter no es seguro entre hilos. Todo cambio en los widgets se programa en el h
 Con fakeredis (Redis en memoria), una Chroma temporal y un modelo simulado determinista (`modelo_simulado.py`). Una prueba de integración opcional (`BIBLIOTECA_PRUEBAS_REALES=1`) usa Redis, Chroma y Qwen reales con un prefijo aislado y limpia solo sus llaves.
 
 **41. ¿Cuántas pruebas hay y qué cubren?**
-159: validaciones (9), seguridad (11), personas (10), libros (17), préstamos (13), API de la interfaz (10), arquitectura (37), configuración (4), gestor de modelos (9), demostración (2), interfaz (4), animaciones (6), portadas (26) e integración real (1).
+167: validaciones (9), seguridad (11), personas (10), libros (17), préstamos (13), API de la interfaz (10), arquitectura (37), configuración (4), gestor de modelos (9), demostración (2), interfaz (4), animaciones (6), memoria de modelos (8), portadas (26) e integración real (1).
 
 **42. ¿Qué es el modo de demostración?**
 `python demo_interfaz.py` abre la interfaz con fakeredis, Chroma en memoria y el modelo simulado, con datos de ejemplo y la contraseña `demo1234`. Sirve para mostrar el sistema o revisar la interfaz sin tocar datos reales.
@@ -1075,7 +1075,7 @@ def test_no_elimina_libro_prestado(servicio):
 
 <details><summary>Solución</summary>
 
-MiniLM produce vectores de 384 dimensiones y la colección de Qwen contiene vectores de 1024: no son comparables, ni en tamaño ni en significado. Por eso cada modelo tiene su colección (`libros_<clave>`) y el cambio se hace desde Configuración, que reindexa. Si se cambia `BIBLIOTECA_MODELO` con una colección vacía para ese modelo, la búsqueda no devolverá resultados hasta reindexar.
+MiniLM produce vectores de 384 dimensiones y la colección de Qwen contiene vectores de 1024: no son comparables, ni en tamaño ni en significado. Por eso cada modelo tiene su colección (`libros_<clave>`) y el cambio se hace desde Configuración, que calcula los vectores que le falten a esa colección. Si se cambia `BIBLIOTECA_MODELO` con una colección vacía para ese modelo, la búsqueda no devolverá resultados hasta hacer el cambio desde Configuración.
 </details>
 
 ### Ejercicio 10: interfaz
@@ -1115,7 +1115,7 @@ flowchart LR
     S --> L["LFPDPPP · ARCO · minimización"]
     I --> TK["Tkinter · 7 secciones · GestorTareas"]
     I --> API["Solo API pública de ServicioBiblioteca"]
-    C --> PR["159 pruebas · fakeredis · modelo simulado"]
+    C --> PR["167 pruebas · fakeredis · modelo simulado"]
     C --> GH["GitHub: ramas protegidas · PR · CODEOWNERS · CI"]
 ```
 
