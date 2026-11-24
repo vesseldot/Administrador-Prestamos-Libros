@@ -54,7 +54,8 @@ class GestorLibros:
         return self.cliente.get_or_create_collection(
             name=nombre_coleccion(clave),
             configuration={"hnsw": {"space": "cosine"}},
-            metadata={"modelo": MODELOS[clave]["nombre_completo"], "dimensiones": MODELOS[clave]["dim"]},
+            metadata={"modelo": MODELOS[clave]["nombre_completo"], "dimensiones": MODELOS[clave]["dim"],
+                      "revision": MODELOS[clave]["revision"]},
             embedding_function=None)
 
     def _agregar_en_lotes(self, coleccion, modelo, libros: list[dict], progreso=None):
@@ -142,17 +143,23 @@ class GestorLibros:
                 for i, d, m, dist in zip(resultado["ids"][0], resultado["documents"][0],
                                          resultado["metadatas"][0], resultado["distances"][0])]
 
-    def _sincronizar_coleccion(self, coleccion, modelo, libros: list[dict], progreso=None) -> dict:
+    def _sincronizar_coleccion(self, coleccion, modelo, libros: list[dict], progreso=None,
+                               revision: str | None = None) -> dict:
         """Deja `coleccion` al día con `libros` conservando lo que ese modelo ya había procesado.
 
         Un libro se reutiliza si su sinopsis guardada coincide con la actual; solo los que faltan o
         cambiaron se convierten en vectores. Cada lote queda guardado al terminar, de modo que una
         interrupción no pierde el avance y el siguiente intento continúa desde ahí.
+
+        Si la colección se calculó con otra revisión del modelo (o no la tiene anotada), ningún vector
+        se reutiliza: se recalculan todos y, al terminar, se anota la revisión actual.
         """
         guardados = coleccion.get(include=["documents"])
-        vigentes = dict(zip(guardados["ids"], guardados["documents"]))
+        metadatos_coleccion = dict(coleccion.metadata or {})
+        misma_revision = revision is None or metadatos_coleccion.get("revision") == revision
+        vigentes = dict(zip(guardados["ids"], guardados["documents"])) if misma_revision else {}
         ids_fuente = {libro["id"] for libro in libros}
-        sobrantes = [i for i in vigentes if i not in ids_fuente]
+        sobrantes = [i for i in guardados["ids"] if i not in ids_fuente]
         for inicio in range(0, len(sobrantes), self.LOTE_METADATOS):
             coleccion.delete(ids=sobrantes[inicio:inicio + self.LOTE_METADATOS])
         reutilizables = [libro for libro in libros if vigentes.get(libro["id"]) == libro["sinopsis"]]
@@ -162,6 +169,8 @@ class GestorLibros:
             coleccion.update(ids=[libro["id"] for libro in grupo],
                              metadatas=[metadatos_de(libro) for libro in grupo])
         self._agregar_en_lotes(coleccion, modelo, pendientes, progreso)
+        if not misma_revision:
+            coleccion.modify(metadata={**metadatos_coleccion, "revision": revision})
         return {"reutilizados": len(reutilizables), "calculados": len(pendientes), "eliminados": len(sobrantes)}
 
     def cambiar_modelo(self, nueva_clave: str, libros: list[dict], progreso=None) -> int:
@@ -175,7 +184,8 @@ class GestorLibros:
         nuevo_modelo = self._fabrica_modelo(nueva_clave)
         nueva_coleccion = self._abrir_coleccion(nueva_clave)
         try:
-            resumen = self._sincronizar_coleccion(nueva_coleccion, nuevo_modelo, libros, progreso)
+            resumen = self._sincronizar_coleccion(nueva_coleccion, nuevo_modelo, libros, progreso,
+                                                  MODELOS[nueva_clave]["revision"])
         except Exception:
             nuevo_modelo.liberar()
             raise

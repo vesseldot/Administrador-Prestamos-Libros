@@ -131,3 +131,36 @@ def test_cambio_al_mismo_modelo_no_hace_nada(servicio, monkeypatch):
     calculados = _espiar_calculos(servicio, monkeypatch)
     assert servicio.cambiar_modelo(QWEN) == 2
     assert calculados == []
+
+
+def test_otra_revision_del_modelo_recalcula_todo_una_vez(servicio, monkeypatch):
+    from modelos import MODELOS
+    _preparar(servicio, 3)
+    servicio.cambiar_modelo(E5)
+    monkeypatch.setitem(MODELOS[QWEN], "revision", "revision-nueva")
+    calculados = _espiar_calculos(servicio, monkeypatch)
+
+    servicio.cambiar_modelo(QWEN)
+
+    assert len(calculados) == 3
+    assert servicio.resumen_ultimo_cambio == {"reutilizados": 0, "calculados": 3, "eliminados": 0}
+    assert servicio.indice.coleccion.metadata["revision"] == "revision-nueva"
+    servicio.cambiar_modelo(E5)
+    calculados.clear()
+    servicio.cambiar_modelo(QWEN)
+    assert calculados == [] and servicio.resumen_ultimo_cambio["reutilizados"] == 3
+
+
+def test_coleccion_con_revision_desconocida_se_recalcula(servicio, monkeypatch):
+    from modelos import MODELOS
+    _preparar(servicio, 2)
+    coleccion = servicio.indice.coleccion
+    coleccion.modify(metadata={"modelo": MODELOS[QWEN]["nombre_completo"], "dimensiones": MODELOS[QWEN]["dim"],
+                               "revision": ""})
+    servicio.cambiar_modelo(E5)
+    calculados = _espiar_calculos(servicio, monkeypatch)
+
+    servicio.cambiar_modelo(QWEN)
+
+    assert len(calculados) == 2
+    assert servicio.indice.coleccion.metadata["revision"] == MODELOS[QWEN]["revision"]
