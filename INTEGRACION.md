@@ -112,6 +112,7 @@ Hilo: **UI** = puede llamarse directamente (solo Redis o cálculo ligero). **Tar
 | Método | Devuelve | Excepciones | Hilo |
 |---|---|---|---|
 | `clave_modelo` *(propiedad)* | `str` del modelo activo | — | UI |
+| `resumen_ultimo_cambio` *(propiedad)* | `dict` con `reutilizados`, `calculados` y `eliminados` del último cambio de modelo, o `None` | — | UI |
 | `info_modelo()` | `dict`: `modelo`, `modelo_repositorio`, `dimensiones`, `max_tokens`, `modelo_cargado`, `dispositivo` | — | UI |
 | `modelo_pendiente_de_descarga()` | `bool` | — | UI |
 | `precargar_modelo()` | `dict` (como `info_modelo`) | `ModeloNoDisponible` | Tarea |
@@ -120,7 +121,7 @@ Hilo: **UI** = puede llamarse directamente (solo Redis o cálculo ligero). **Tar
 | `descargar_modelo(clave=None, progreso=None)` | `dict` `{dimensiones, dispositivo}` tras validar | `SinConexion`, `EspacioInsuficiente`, `ErrorDescarga` | **Tarea independiente** (`independiente=True`) |
 | `contar_tokens(texto, clave=None)` | `dict` `{clave, tokens, palabras, maximo, cabe}` | `ModeloNoDisponible` | Tarea |
 | `revisar_cortes(clave=None)` | `dict` `{clave, maximo, cortadas, resultados: [(id, titulo, tokens)]}` | `ModeloNoDisponible` | Tarea |
-| `cambiar_modelo(clave, progreso=None)` | `int` de libros reindexados | `ValueError`, `ModeloNoDisponible` | Tarea |
+| `cambiar_modelo(clave, progreso=None)` | `int` de libros con el nuevo modelo; el detalle (reutilizados, calculados, eliminados) queda en `resumen_ultimo_cambio` | `ValueError`, `ModeloNoDisponible` | Tarea |
 
 `progreso` de `descargar_modelo` recibe `(bytes_hechos, bytes_totales, archivo)`.
 

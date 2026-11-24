@@ -104,7 +104,7 @@ El estado «vencido» no se almacena: se deriva de `fecha_limite` y lo mismo ocu
 
 ## 4. Modelo de datos en ChromaDB
 
-- Una colección por modelo, `libros_<modelo>` (por ejemplo `libros_qwen3_embedding_0_6b`), con espacio coseno. Cambiar de modelo reindexa en una colección nueva y conserva la anterior.
+- Una colección por modelo, `libros_<modelo>` (por ejemplo `libros_qwen3_embedding_0_6b`), con espacio coseno. Cada colección conserva lo que su modelo ya procesó: al cambiar de modelo se compara por sinopsis y solo se calculan los libros nuevos o modificados, se reutiliza el resto y se eliminan los que ya no existen (el modelo activo solo cambia cuando la colección destino queda completa).
 - `ids` = id del libro · `documents` = sinopsis · `metadatas` = los 12 campos de metadatos · embeddings calculados por la aplicación (`embedding_function=None`).
 - El modelo activo se guarda en `modelo_activo.txt`.
 
