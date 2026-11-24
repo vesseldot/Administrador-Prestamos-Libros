@@ -153,7 +153,7 @@ Los estados «vencido» de un préstamo y la edad de una persona **no se almacen
 - **Colecciones**: una por modelo, con el nombre `libros_<modelo>` que genera `modelos.nombre_coleccion`; por ejemplo, `libros_qwen3_embedding_0_6b`. Se crean con `configuration={"hnsw": {"space": "cosine"}}` y `metadata={"modelo": <repositorio>, "dimensiones": <dim>}`.
 - **Registros**: `ids` es el id del libro; `documents`, la sinopsis; `metadatas`, los 12 campos de `validaciones.CAMPOS_METADATOS_LIBRO`; y `embeddings`, vectores calculados por la aplicación, porque `embedding_function=None`.
 - **Similitud**: Chroma devuelve una distancia coseno y el sistema la convierte a `similitud = 1 − distancia` (`GestorLibros.buscar`).
-- **Modelo activo**: se guarda en `modelo_activo.txt`, junto a la carpeta de Chroma. Cambiar de modelo reindexa en una colección nueva y conserva la anterior.
+- **Modelo activo**: se guarda en `modelo_activo.txt`, junto a la carpeta de Chroma. Cada colección conserva lo que su modelo ya procesó: al cambiar de modelo se compara por sinopsis y solo se calculan los libros nuevos o modificados, se reutiliza el resto y se eliminan los que ya no existen. El modelo activo solo cambia cuando la colección destino queda completa.
 
 ## 6. Modelo semántico
 

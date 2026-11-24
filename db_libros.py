@@ -37,6 +37,8 @@ def _lista(valor):
 
 
 class GestorLibros:
+    LOTE_METADATOS = 500
+
     def __init__(self, ruta_chroma: str = config.CHROMA_PATH, clave_modelo: str | None = None,
                  fabrica_modelo=ModeloEmbeddings, cliente=None):
         self.cliente = cliente or chromadb.PersistentClient(
@@ -46,6 +48,7 @@ class GestorLibros:
         self.clave_modelo = clave
         self.modelo = fabrica_modelo(clave)
         self.coleccion = self._abrir_coleccion(clave)
+        self.resumen_cambio: dict | None = None
 
     def _abrir_coleccion(self, clave: str):
         return self.cliente.get_or_create_collection(
@@ -139,24 +142,46 @@ class GestorLibros:
                 for i, d, m, dist in zip(resultado["ids"][0], resultado["documents"][0],
                                          resultado["metadatas"][0], resultado["distances"][0])]
 
+    def _sincronizar_coleccion(self, coleccion, modelo, libros: list[dict], progreso=None) -> dict:
+        """Deja `coleccion` al día con `libros` conservando lo que ese modelo ya había procesado.
+
+        Un libro se reutiliza si su sinopsis guardada coincide con la actual; solo los que faltan o
+        cambiaron se convierten en vectores. Cada lote queda guardado al terminar, de modo que una
+        interrupción no pierde el avance y el siguiente intento continúa desde ahí.
+        """
+        guardados = coleccion.get(include=["documents"])
+        vigentes = dict(zip(guardados["ids"], guardados["documents"]))
+        ids_fuente = {libro["id"] for libro in libros}
+        sobrantes = [i for i in vigentes if i not in ids_fuente]
+        for inicio in range(0, len(sobrantes), self.LOTE_METADATOS):
+            coleccion.delete(ids=sobrantes[inicio:inicio + self.LOTE_METADATOS])
+        reutilizables = [libro for libro in libros if vigentes.get(libro["id"]) == libro["sinopsis"]]
+        pendientes = [libro for libro in libros if vigentes.get(libro["id"]) != libro["sinopsis"]]
+        for inicio in range(0, len(reutilizables), self.LOTE_METADATOS):
+            grupo = reutilizables[inicio:inicio + self.LOTE_METADATOS]
+            coleccion.update(ids=[libro["id"] for libro in grupo],
+                             metadatas=[metadatos_de(libro) for libro in grupo])
+        self._agregar_en_lotes(coleccion, modelo, pendientes, progreso)
+        return {"reutilizados": len(reutilizables), "calculados": len(pendientes), "eliminados": len(sobrantes)}
+
     def cambiar_modelo(self, nueva_clave: str, libros: list[dict], progreso=None) -> int:
-        """Reindexa `libros` con otro modelo y solo conmuta si todo salió bien."""
+        """Pasa al modelo `nueva_clave` aprovechando lo que ya procesó y solo conmuta si todo salió bien."""
         if nueva_clave not in MODELOS:
             raise ValueError(f"Modelo desconocido: {nueva_clave}")
         if nueva_clave == self.clave_modelo:
-            return self.contar()
+            total = self.contar()
+            self.resumen_cambio = {"reutilizados": total, "calculados": 0, "eliminados": 0}
+            return total
         nuevo_modelo = self._fabrica_modelo(nueva_clave)
         nueva_coleccion = self._abrir_coleccion(nueva_clave)
-        existentes = nueva_coleccion.get(include=[])["ids"]
-        if existentes:
-            nueva_coleccion.delete(ids=existentes)
         try:
-            self._agregar_en_lotes(nueva_coleccion, nuevo_modelo, libros, progreso)
+            resumen = self._sincronizar_coleccion(nueva_coleccion, nuevo_modelo, libros, progreso)
         except Exception:
             nuevo_modelo.liberar()
             raise
         anterior = self.modelo
         self.modelo, self.coleccion, self.clave_modelo = nuevo_modelo, nueva_coleccion, nueva_clave
+        self.resumen_cambio = resumen
         guardar_modelo_activo(nueva_clave)
         if hasattr(anterior, "liberar"):
             anterior.liberar()

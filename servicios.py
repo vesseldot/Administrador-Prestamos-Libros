@@ -456,8 +456,13 @@ class ServicioBiblioteca:
         fuente = [{**libro, "sinopsis": documentos[libro["id"]]["sinopsis"]} for libro in libros]
         cantidad = self.indice.cambiar_modelo(clave, fuente, progreso)
         self.actividad.registrar("modelo_cambiado", f"Modelo de embeddings: {clave}",
-                                 modelo=clave, libros=cantidad)
+                                 modelo=clave, libros=cantidad, **(self.resumen_ultimo_cambio or {}))
         return cantidad
+
+    @property
+    def resumen_ultimo_cambio(self) -> dict | None:
+        """Libros reutilizados, calculados y eliminados en el último cambio de modelo."""
+        return self.indice.resumen_cambio
 
     en_memoria = False
 

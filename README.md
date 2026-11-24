@@ -12,7 +12,7 @@ Aplicación de escritorio en **Python + Tkinter** para administrar el acervo, lo
 - **Búsqueda semántica** en lenguaje natural, con la opción «solo disponibles».
 - **Personas**: alta con aviso de privacidad y derechos ARCO (ficha, exportación, rectificación y cancelación).
 - **Préstamos** de 1 a 3 libros por persona, devoluciones parciales o totales e historial permanente.
-- **Configuración**: descarga y cambio del modelo, sincronización Redis ↔ ChromaDB, seguridad y estado del sistema.
+- **Configuración**: descarga y cambio del modelo (cada modelo conserva lo que ya procesó y solo calcula los libros que le faltan), sincronización Redis ↔ ChromaDB, seguridad y estado del sistema.
 - **Seguridad**: AES-256-GCM por campo, contraseña de operador con scrypt y bloqueo por inactividad.
 
 ## Arquitectura

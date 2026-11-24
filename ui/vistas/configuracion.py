@@ -45,15 +45,15 @@ class VistaConfiguracion(Vista):
         superior = tarjeta(marco)
         superior.pack(fill="x")
         fila, _ = encabezado_tarjeta(superior, "Modelo de embeddings",
-                                     "Indexar y consultar siempre con el mismo modelo. Cambiar de modelo reindexa "
-                                     "todas las sinopsis en una colección propia; la anterior se conserva.")
+                                     "Indexar y consultar siempre con el mismo modelo. Cada modelo conserva lo que ya "
+                                     "procesó: al cambiar solo se calculan los libros que le faltan.")
         self.badge_modelo = badge(fila, "", "Info")
         self.badge_modelo.pack(side="right", anchor="n")
         self.tabla_modelos = Tabla(superior, COLUMNAS_MODELOS, alto=5, clave_id="clave")
         self.tabla_modelos.pack(fill="x")
         botones = tk.Frame(superior, bg=COLOR["tarjeta"])
         botones.pack(fill="x", pady=(12, 0))
-        Boton(botones, "Usar el modelo seleccionado y reindexar", icono="sincronizar", variante="primario",
+        Boton(botones, "Usar el modelo seleccionado", icono="sincronizar", variante="primario",
               comando=self.cambiar_modelo).pack(side="left")
         Boton(botones, "Revisar sinopsis que se cortan", icono="documento",
               comando=self.revisar_cortes).pack(side="left", padx=8)
@@ -219,20 +219,25 @@ class VistaConfiguracion(Vista):
         if not self._descargado(clave):
             return self.app.ofrecer_descarga(clave, self._refrescar_modelos)
         total = self.servicio.contar_libros()
-        if not confirmar(self, "Cambiar modelo", f"¿Cambiar a {clave} y reindexar los {total} libros? La búsqueda "
-                         "usará el nuevo modelo cuando termine.", "Cambiar y reindexar"):
+        if not confirmar(self, "Cambiar modelo", f"¿Cambiar a {clave} con los {total} libros? Se conserva lo que ese modelo "
+                         "ya procesó y solo se calculan los libros que le faltan. La búsqueda usará el nuevo "
+                         "modelo cuando termine.", "Cambiar de modelo"):
             return
 
         def progreso(hechos, total_):
-            self.app.mensaje_estado(f"Reindexando con {clave}… {hechos}/{total_}")
+            self.app.mensaje_estado(f"Calculando libros pendientes con {clave}… {hechos}/{total_}")
 
         def listo(cantidad):
             self._refrescar_modelos()
             self.app.actualizar_modelo()
-            escribir(self.salida_modelo, f"Se reindexaron {cantidad} libros con {clave}.")
+            resumen = self.servicio.resumen_ultimo_cambio or {}
+            escribir(self.salida_modelo, f"{clave} listo con {cantidad} libros: "
+                                         f"{resumen.get('reutilizados', 0)} reutilizados, "
+                                         f"{resumen.get('calculados', 0)} calculados y "
+                                         f"{resumen.get('eliminados', 0)} eliminados.")
             self.exito(f"Modelo cambiado a {clave}.")
         self.tarea(lambda: self.servicio.cambiar_modelo(clave, self.app.tareas.progreso(progreso)), listo,
-                   f"Cargando {clave} y reindexando…")
+                   f"Cargando {clave} y sincronizando libros…")
 
     def contar_tokens(self):
         texto = self.texto_prueba.get("1.0", "end").strip()
