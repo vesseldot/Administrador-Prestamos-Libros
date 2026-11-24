@@ -2,7 +2,8 @@
 
 Reglas:
   - Indexar y consultar siempre con el mismo modelo.
-  - Cambiar de modelo obliga a reindexar: cada modelo tiene su propia colección.
+  - Cada modelo tiene su propia colección y conserva lo que ya procesó: al cambiar de modelo solo se
+    calculan los libros nuevos o con la sinopsis modificada.
 """
 import re
 import threading

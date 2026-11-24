@@ -76,7 +76,7 @@ Cada instalación genera **su propia llave de cifrado** y usa **su propio Redis 
 - **Personas**: alta con aceptación obligatoria del aviso de privacidad y edad calculada automáticamente. Búsqueda por nombre y campos no sensibles, y derechos ARCO: acceso, exportación a JSON, rectificación y cancelación.
 - **Préstamos**: de 1 a 3 libros por persona, en una sola operación o en varias, con fecha y estado. Devoluciones de uno, de varios o de todos los libros, **conservando el historial**.
 - **Personas con préstamos**: vista agrupada; el contacto se muestra solo a petición.
-- **Configuración**: descarga y cambio del modelo con reindexado, contador de tokens, sincronización Redis ↔ Chroma, seguridad y estado del sistema.
+- **Configuración**: descarga y cambio del modelo (cada modelo conserva lo que ya procesó), contador de tokens, sincronización Redis ↔ Chroma, seguridad y estado del sistema.
 - **Seguridad**: AES-256-GCM por campo, contraseña de operador (scrypt), bloqueo por inactividad y registro sin datos personales.
 
 ## Tecnologías
@@ -294,7 +294,7 @@ Modelos alternativos, seleccionables en Configuración (cada uno con su revisió
 | `intfloat/multilingual-e5-base` | MIT | ~1.1 GB |
 | `hiiamsid/sentence_similarity_spanish_es` | Apache-2.0 | ~440 MB |
 
-Cambiar de modelo reindexa las sinopsis en una colección propia. La calidad medida de cada modelo está en [PRUEBAS.md](PRUEBAS.md).
+Cada modelo tiene su colección propia y **conserva lo que ya procesó**: al cambiar de modelo (o al volver a uno anterior) solo se calculan los libros nuevos o con la sinopsis editada; el resto se reutiliza y se eliminan los que ya no existen. Si el proceso se interrumpe, lo avanzado se conserva y el siguiente intento continúa desde ahí. Los vectores de un modelo no sirven para otro, así que un modelo calcula por sí mismo los libros que nunca procesó. La calidad medida de cada modelo está en [PRUEBAS.md](PRUEBAS.md).
 
 ## Configuración y claves
 
