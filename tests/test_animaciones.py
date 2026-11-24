@@ -7,10 +7,14 @@ tk = pytest.importorskip("tkinter")
 
 
 def _raiz():
-    try:
-        return tk.Tk()
-    except tk.TclError:
-        pytest.skip("requiere entorno gráfico")
+    """Crea la ventana; en Windows Tk falla a veces de forma transitoria, así que se reintenta."""
+    for intento in range(3):
+        try:
+            return tk.Tk()
+        except tk.TclError:
+            if intento < 2:
+                time.sleep(1)
+    pytest.skip("requiere entorno gráfico")
 
 
 def _bombear(raiz, segundos):
